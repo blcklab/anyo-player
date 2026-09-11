@@ -1,0 +1,29 @@
+{
+  "version": "0.6",
+  "environment": {
+    "background": "#111827",
+    "ambientLight": {
+      "color": "#ffffff",
+      "intensity": 0.8
+    }
+  },
+  "entities": [
+    {
+      "id": "foundation-box",
+      "type": "box",
+      "position": [0, 1, -4],
+      "size": [2, 2, 2],
+      "color": "#93c5fd",
+      "data": {
+        "interactionPrompt": "Inspect foundation"
+      },
+      "interaction": {
+        "action": "inspect-foundation",
+        "params": {
+          "name": "Anyo Player foundation"
+        },
+        "distance": 6
+      }
+    }
+  ]
+}

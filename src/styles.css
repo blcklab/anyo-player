@@ -1,0 +1,573 @@
+.anyo-player {
+  --anyo-player-ui-background: rgba(12, 15, 20, 0.88);
+  --anyo-player-ui-surface: rgba(24, 28, 35, 0.94);
+  --anyo-player-ui-text: #f7f8fa;
+  --anyo-player-ui-muted: #b7bec9;
+  --anyo-player-ui-border: rgba(255, 255, 255, 0.12);
+  --anyo-player-ui-accent: #f7f8fa;
+  --anyo-player-ui-accent-text: #111318;
+  --anyo-player-ui-warning: #f6c85f;
+  --anyo-player-ui-error: #ff8f8f;
+  --anyo-player-ui-panel-radius: 14px;
+  --anyo-player-ui-control-radius: 9px;
+  --anyo-player-ui-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --anyo-player-ui-backdrop-blur: 14px;
+  position: relative;
+  overflow: hidden;
+  contain: layout paint style;
+  background: #111318;
+}
+
+.anyo-player__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+
+.anyo-player__ui,
+.anyo-player__ui * {
+  box-sizing: border-box;
+}
+
+.anyo-player__ui[hidden],
+.anyo-player__ui [hidden] {
+  display: none !important;
+}
+
+.anyo-player__slot {
+  display: contents;
+}
+
+.anyo-player__ui[data-anyo-player-adapter-mode="replace"] [data-anyo-player-default-ui] {
+  display: none !important;
+}
+
+.anyo-player__ui {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  pointer-events: none;
+  color: var(--anyo-player-ui-text);
+  font: 500 14px/1.45 var(--anyo-player-ui-font-family);
+}
+
+.anyo-player__panel {
+  width: min(360px, 100%);
+  padding: 20px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: var(--anyo-player-ui-panel-radius);
+  background: var(--anyo-player-ui-background);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(var(--anyo-player-ui-backdrop-blur));
+  text-align: center;
+}
+
+.anyo-player__title,
+.anyo-player__message,
+.anyo-player__progress-details,
+.anyo-player__diagnostic-message {
+  margin: 0;
+}
+
+.anyo-player__title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.anyo-player__message {
+  margin-top: 7px;
+  color: var(--anyo-player-ui-muted);
+}
+
+.anyo-player__progress {
+  width: 100%;
+  height: 5px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.anyo-player__progress-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--anyo-player-ui-accent);
+  transition: width 160ms ease-out;
+}
+
+.anyo-player__progress-details {
+  margin-top: 9px;
+  color: var(--anyo-player-ui-muted);
+  font-size: 12px;
+}
+
+.anyo-player__diagnostic {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  width: min(520px, calc(100% - 32px));
+  transform: translateX(-50%);
+  padding: 10px 13px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: 10px;
+  background: var(--anyo-player-ui-surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+
+.anyo-player__diagnostic[data-severity="warning"] {
+  border-color: color-mix(in srgb, var(--anyo-player-ui-warning) 55%, transparent);
+}
+
+.anyo-player__diagnostic[data-severity="error"] {
+  border-color: color-mix(in srgb, var(--anyo-player-ui-error) 55%, transparent);
+}
+
+.anyo-player__panel--error {
+  pointer-events: auto;
+}
+
+.anyo-player__button {
+  min-height: 38px;
+  margin-top: 16px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--anyo-player-ui-control-radius);
+  background: var(--anyo-player-ui-accent);
+  color: var(--anyo-player-ui-accent-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.anyo-player__button:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.anyo-player__button:focus-visible {
+  outline: 2px solid var(--anyo-player-ui-text);
+  outline-offset: 3px;
+}
+
+.anyo-player__button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anyo-player__progress-fill,
+  .anyo-player__reticle {
+    transition: none;
+  }
+}
+
+.anyo-player__panel--enter {
+  pointer-events: auto;
+}
+
+.anyo-player__panel--enter .anyo-player__button {
+  min-width: 112px;
+}
+
+.anyo-player__canvas:focus-visible {
+  outline: 2px solid var(--anyo-player-ui-accent);
+  outline-offset: -2px;
+}
+
+.anyo-player__panel--paused {
+  pointer-events: auto;
+}
+
+.anyo-player__pause-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.anyo-player__pause-action {
+  min-width: 104px;
+  margin-top: 0;
+}
+
+.anyo-player__controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.anyo-player__control {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: var(--anyo-player-ui-control-radius);
+  background: var(--anyo-player-ui-surface);
+  color: var(--anyo-player-ui-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(12px);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.anyo-player__control:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--anyo-player-ui-surface) 84%, white);
+}
+
+.anyo-player__control:focus-visible {
+  outline: 2px solid var(--anyo-player-ui-text);
+  outline-offset: 3px;
+}
+
+.anyo-player__control:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+@media (max-width: 520px) {
+  .anyo-player__pause-actions {
+    display: grid;
+    width: min(100%, 280px);
+    grid-template-columns: 1fr;
+  }
+
+  .anyo-player__pause-action {
+    width: 100%;
+  }
+
+  .anyo-player__controls {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .anyo-player__control {
+    min-height: 40px;
+    padding-inline: 11px;
+  }
+}
+
+.anyo-player__reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.72;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.anyo-player__reticle::before,
+.anyo-player__reticle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 999px;
+  background: var(--anyo-player-ui-text);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%);
+}
+
+.anyo-player__reticle::before {
+  width: 2px;
+  height: 14px;
+}
+
+.anyo-player__reticle::after {
+  width: 14px;
+  height: 2px;
+}
+
+.anyo-player__reticle[data-active="true"] {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.18);
+}
+
+.anyo-player__reticle[data-active="true"]::before,
+.anyo-player__reticle[data-active="true"]::after {
+  background: var(--anyo-player-ui-accent);
+}
+
+.anyo-player__interaction-prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 72px;
+  width: max-content;
+  max-width: min(420px, calc(100% - 32px));
+  transform: translateX(-50%);
+  padding: 10px 13px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: 12px;
+  background: var(--anyo-player-ui-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+  text-align: left;
+}
+
+.anyo-player__interaction-prompt-title,
+.anyo-player__interaction-prompt-message,
+.anyo-player__interaction-prompt-description {
+  margin: 0;
+}
+
+.anyo-player__interaction-prompt-title {
+  order: -1;
+  margin-bottom: 2px;
+  color: var(--anyo-player-ui-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.anyo-player__interaction-prompt-message {
+  color: var(--anyo-player-ui-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.anyo-player__interaction-prompt-description {
+  margin-top: 3px;
+  color: var(--anyo-player-ui-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.anyo-player__interaction-prompt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+}
+
+.anyo-player__interaction-prompt-hint {
+  color: var(--anyo-player-ui-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.anyo-player__interaction-action {
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: 8px;
+  background: var(--anyo-player-ui-accent);
+  color: var(--anyo-player-ui-accent-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.anyo-player__interaction-action:focus-visible {
+  outline: 2px solid var(--anyo-player-ui-text);
+  outline-offset: 2px;
+}
+
+.anyo-player__interaction-action:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.anyo-player__touch,
+.anyo-player__touch * {
+  box-sizing: border-box;
+}
+
+.anyo-player__touch[hidden],
+.anyo-player__touch [hidden] {
+  display: none !important;
+}
+
+.anyo-player__touch {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.anyo-player__touch-move {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: calc(var(--anyo-player-touch-radius, 54px) * 2);
+  height: calc(var(--anyo-player-touch-radius, 54px) * 2);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.anyo-player__touch-base {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: 50%;
+  background: rgba(12, 15, 20, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.anyo-player__touch-thumb {
+  width: 46%;
+  height: 46%;
+  border-radius: 50%;
+  background: rgba(247, 248, 250, 0.9);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.28);
+  transform: translate(0, 0);
+  will-change: transform;
+}
+
+.anyo-player__touch-run,
+.anyo-player__touch-jump {
+  position: absolute;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  min-width: 58px;
+  min-height: 58px;
+  padding: 8px 12px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: 50%;
+  background: rgba(12, 15, 20, 0.62);
+  color: var(--anyo-player-ui-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  touch-action: none;
+  font: 700 12px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.anyo-player__touch-jump {
+  right: max(92px, calc(env(safe-area-inset-right) + 92px));
+}
+
+.anyo-player__touch-run[aria-pressed="true"] {
+  background: var(--anyo-player-ui-accent);
+  color: var(--anyo-player-ui-accent-text);
+}
+
+@media (max-width: 520px) {
+  .anyo-player__interaction-prompt {
+    bottom: 86px;
+  }
+}
+
+.anyo-player__xr-status {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  max-width: min(360px, calc(100% - 32px));
+  padding: 9px 12px;
+  border: 1px solid var(--anyo-player-ui-border);
+  border-radius: 10px;
+  background: var(--anyo-player-ui-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.anyo-player__xr-status[data-severity="error"] {
+  border-color: color-mix(in srgb, var(--anyo-player-ui-error) 55%, transparent);
+}
+
+.anyo-player__xr-status-message {
+  margin: 0;
+  color: var(--anyo-player-ui-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.anyo-player__control--vr[aria-pressed="true"] {
+  background: var(--anyo-player-ui-accent);
+  color: var(--anyo-player-ui-accent-text);
+}
+
+@media (max-width: 520px) {
+  .anyo-player__xr-status {
+    top: 10px;
+    right: 10px;
+    max-width: calc(100% - 20px);
+  }
+}
+
+.anyo-player__sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.anyo-player[data-anyo-player-reduced-motion="true"] .anyo-player__ui *,
+.anyo-player[data-anyo-player-reduced-motion="true"] .anyo-player__ui *::before,
+.anyo-player[data-anyo-player-reduced-motion="true"] .anyo-player__ui *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
+.anyo-player__poster {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  background: #090b11;
+  pointer-events: none;
+}
+
+.anyo-player__poster[hidden] {
+  display: none;
+}
+
+.anyo-player__poster-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+}
+
+
+.anyo-player__canvas {
+  transition: opacity 160ms ease;
+}
+
+.anyo-player--world-transition .anyo-player__canvas {
+  opacity: 0.16;
+}
+
+.anyo-player[data-anyo-player-reduced-motion="true"] .anyo-player__canvas {
+  transition-duration: 0.001ms !important;
+}
+
+.anyo-player__map-attribution{position:absolute;left:10px;bottom:8px;z-index:9;max-width:min(80%,520px);padding:5px 8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:6px;background:color-mix(in srgb,#07100d 82%,transparent);color:#d9e6df;font:500 11px/1.3 system-ui,sans-serif;pointer-events:none;backdrop-filter:blur(8px)}
+
+.anyo-player__caption{position:absolute;left:50%;bottom:clamp(32px,7vh,72px);z-index:12;max-width:min(86%,780px);transform:translateX(-50%);padding:10px 16px;border:1px solid color-mix(in srgb,#fff 18%,transparent);border-radius:8px;background:color-mix(in srgb,#05080d 84%,transparent);color:#fff;text-align:center;font:600 clamp(14px,1.7vw,20px)/1.45 system-ui,sans-serif;letter-spacing:.01em;text-shadow:0 1px 2px #000;box-shadow:0 8px 28px #0006;pointer-events:none;backdrop-filter:blur(10px)}
+.anyo-player__caption-speaker{color:#ffdca8;font-weight:750}
+.anyo-player[data-anyo-player-reduced-motion="true"] .anyo-player__caption{transition:none}

@@ -1,0 +1,8 @@
+{
+  "version": "0.6",
+  "environment": { "background": "#0f1d3a", "ambientLight": { "color": "#ffffff", "intensity": 0.9 } },
+  "entities": [
+    { "id": "blue-box", "type": "box", "position": [0, 1, -4], "size": [2, 2, 2], "color": "#60a5fa" }
+  ],
+  "exploration": { "spawn": { "position": [0, 1.65, 2] }, "pointerLock": true }
+}

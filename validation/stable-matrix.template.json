@@ -1,0 +1,197 @@
+{
+  "format": "@blcklab/anyo-player/stable-validation-matrix",
+  "schemaVersion": 1,
+  "packageVersion": "0.5.0",
+  "updatedAt": null,
+  "entries": [
+    {
+      "id": "browser.desktop.chrome.webgl2",
+      "area": "Browser",
+      "environment": "Chrome desktop / WebGL2",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "browser.desktop.firefox.webgl2",
+      "area": "Browser",
+      "environment": "Firefox desktop / WebGL2",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "browser.desktop.safari.webgl2",
+      "area": "Browser",
+      "environment": "Safari desktop / WebGL2",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "backend.chrome.webgpu",
+      "area": "Backend",
+      "environment": "Chrome desktop / WebGPU",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "mobile.android.chrome",
+      "area": "Mobile",
+      "environment": "Android Chrome",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "mobile.ios.safari",
+      "area": "Mobile",
+      "environment": "iOS Safari",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "input.pointer-lock-focus-blur",
+      "area": "Input",
+      "environment": "Pointer lock, canvas focus, blur and escape",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "input.touch",
+      "area": "Input",
+      "environment": "Touch movement, look and interaction",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "fullscreen",
+      "area": "Presentation",
+      "environment": "Fullscreen enter, resize and exit",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "assets.remote-glb-textures",
+      "area": "Assets",
+      "environment": "Remote GLB and PBR texture channels",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "lifecycle.replace-dispose",
+      "area": "Lifecycle",
+      "environment": "Repeated load, replace and dispose",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "loss.webgl2",
+      "area": "Recovery",
+      "environment": "Real WebGL2 context loss and restoration",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "loss.webgpu",
+      "area": "Recovery",
+      "environment": "Real WebGPU device loss and player recovery",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "framework.vue3.4",
+      "area": "Framework",
+      "environment": "Vue 3.4 mount, source update, KeepAlive and unmount",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "framework.vue3.5",
+      "area": "Framework",
+      "environment": "Vue 3.5 mount, source update, Suspense/HMR and unmount",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "framework.react18",
+      "area": "Framework",
+      "environment": "React 18 Strict Mode and source replacement",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "framework.react19",
+      "area": "Framework",
+      "environment": "React 19 Strict Mode and source replacement",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "cdn.import-map",
+      "area": "Distribution",
+      "environment": "Published CDN import-map and no-build custom element",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "accessibility.keyboard-screen-reader",
+      "area": "Accessibility",
+      "environment": "Keyboard controls, labels and screen-reader review",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "memory.long-running",
+      "area": "Performance",
+      "environment": "Long-running memory and GPU-resource behavior",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    },
+    {
+      "id": "xr.physical-headset",
+      "area": "WebXR",
+      "environment": "Physical headset entry, tracking, exit and re-entry",
+      "required": true,
+      "status": "pending",
+      "evidence": "",
+      "notes": ""
+    }
+  ]
+}

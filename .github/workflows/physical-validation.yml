@@ -1,0 +1,27 @@
+name: Physical validation evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_label:
+        description: Hardware/device/headset label used for the uploaded evidence
+        required: true
+        type: string
+
+jobs:
+  evidence-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Validate supplied physical evidence
+        run: |
+          test -f validation-results/stable-matrix.json
+          npm run validation:strict -- validation-results/stable-matrix.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: physical-validation-${{ inputs.evidence_label }}
+          path: validation-results/

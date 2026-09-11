@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anyo Player CDN Embed</title>
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; background: #05070b; }
+    anyo-player { display: block; width: 100%; height: 100%; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "@blcklab/anyo-player": "https://cdn.jsdelivr.net/npm/@blcklab/anyo-player@0.5.0/dist/index.js",
+      "@blcklab/anyo-player/element": "https://cdn.jsdelivr.net/npm/@blcklab/anyo-player@0.5.0/dist/element.js",
+      "@blcklab/anyo-player/element/define": "https://cdn.jsdelivr.net/npm/@blcklab/anyo-player@0.5.0/dist/element-define.js",
+      "@blcklab/anyo": "https://cdn.jsdelivr.net/npm/@blcklab/anyo@0.10.0-rc.1/dist/esm/index.js",
+      "@blcklab/anyo/renderer-sekai64": "https://cdn.jsdelivr.net/npm/@blcklab/anyo@0.10.0-rc.1/dist/esm/renderer-sekai64/index.js",
+      "@blcklab/anyo/web-surface": "https://cdn.jsdelivr.net/npm/@blcklab/anyo@0.10.0-rc.1/dist/esm/web-surface/index.js",
+      "@blcklab/sekai64": "https://cdn.jsdelivr.net/npm/@blcklab/sekai64@0.8.0-rc.33/dist/index.js"
+    }
+  }
+  </script>
+  <script type="module">
+    import '@blcklab/anyo-player/element/define'
+
+    const element = document.querySelector('anyo-player')
+    element.options = {
+      ui: {
+        theme: {
+          accent: '#67e8f9'
+        }
+      }
+    }
+    element.addEventListener('anyo-player-error', event => console.error(event.detail))
+  </script>
+</head>
+<body>
+  <anyo-player
+    src="./world.anyo.json"
+    activation="visible"
+    preload="source"
+    backend="auto"
+    pause-when-offscreen
+    aria-label="CDN-hosted Anyo world"
+  ></anyo-player>
+</body>
+</html>

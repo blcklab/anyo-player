@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Anyo Player RC.10 Validation Lab</title>
+  <link rel="stylesheet" href="/validation/styles.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "@blcklab/anyo-player": "/dist/index.js",
+      "@blcklab/anyo-player/element": "/dist/element.js",
+      "@blcklab/anyo": "/node_modules/@blcklab/anyo/dist/esm/index.js",
+      "@blcklab/anyo/renderer-sekai64": "/node_modules/@blcklab/anyo/dist/esm/renderer-sekai64/index.js",
+      "@blcklab/sekai64": "/node_modules/@blcklab/sekai64/dist/index.js",
+      "@blcklab/sekai64/assets": "/node_modules/@blcklab/sekai64/dist/assets/index.js",
+      "@blcklab/sekai64/gltf": "/node_modules/@blcklab/sekai64/dist/gltf/index.js",
+      "@blcklab/sekai64/interaction": "/node_modules/@blcklab/sekai64/dist/interaction/index.js",
+      "@blcklab/sekai64/xr": "/node_modules/@blcklab/sekai64/dist/xr/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">@blcklab/anyo-player@0.5.0</p>
+      <h1>Cross-runtime validation lab</h1>
+      <p>Run browser, asset, renderer-loss, lifecycle, memory, gesture, mobile, and physical-device evidence checks.</p>
+    </div>
+    <button id="export-report" type="button">Export report</button>
+  </header>
+
+  <main>
+    <section class="panel controls">
+      <h2>Automated checks</h2>
+      <div class="button-row">
+        <button id="run-all" type="button">Run automated matrix</button>
+        <button id="run-core" type="button">Core matrix</button>
+        <button id="run-stress" type="button">25-cycle stress</button>
+        <button id="run-assets" type="button">Remote GLB + PBR</button>
+        <button id="run-context-loss" type="button">WebGL loss</button>
+        <button id="run-webgpu-loss" type="button">WebGPU loss</button>
+        <button id="run-memory" type="button">Memory profile</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Ready.</p>
+    </section>
+
+    <section class="panel controls">
+      <h2>User-gesture and physical checks</h2>
+      <div class="button-row">
+        <button id="test-pointer-lock" type="button">Pointer lock/focus</button>
+        <button id="test-fullscreen" type="button">Fullscreen</button>
+        <button id="test-vr" type="button">Physical VR</button>
+      </div>
+      <div id="manual-checks" class="manual-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Capabilities</h2>
+      <pre id="capabilities"></pre>
+    </section>
+
+    <section class="panel stage-panel">
+      <h2>Live players</h2>
+      <div class="stage-grid">
+        <div id="player-a" class="player-host"></div>
+        <div id="player-b" class="player-host"></div>
+        <div id="element-host" class="player-host"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Evidence</h2>
+      <table>
+        <thead><tr><th>Check</th><th>Status</th><th>Evidence</th></tr></thead>
+        <tbody id="results"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script type="module" src="/validation/main.js"></script>
+</body>
+</html>

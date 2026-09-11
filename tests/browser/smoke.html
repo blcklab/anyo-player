@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Anyo Player browser smoke</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #fff; }
+    #players { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px; }
+    .player { width: 320px; height: 220px; position: relative; }
+    #result { white-space: pre-wrap; padding: 8px; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "@blcklab/anyo-player": "/dist/index.js",
+      "@blcklab/anyo-player/element": "/dist/element.js",
+      "@blcklab/anyo": "/node_modules/@blcklab/anyo/dist/esm/index.js",
+      "@blcklab/anyo/renderer-sekai64": "/node_modules/@blcklab/anyo/dist/esm/renderer-sekai64/index.js",
+      "@blcklab/sekai64": "/node_modules/@blcklab/sekai64/dist/index.js",
+      "@blcklab/sekai64/assets": "/node_modules/@blcklab/sekai64/dist/assets/index.js",
+      "@blcklab/sekai64/gltf": "/node_modules/@blcklab/sekai64/dist/gltf/index.js",
+      "@blcklab/sekai64/interaction": "/node_modules/@blcklab/sekai64/dist/interaction/index.js",
+      "@blcklab/sekai64/xr": "/node_modules/@blcklab/sekai64/dist/xr/index.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="players">
+    <div id="player-a" class="player"></div>
+    <div id="player-b" class="player"></div>
+    <div id="element-host" class="player"></div>
+  </div>
+  <pre id="result">RUNNING</pre>
+  <script type="module" src="/tests/browser/smoke.js"></script>
+</body>
+</html>

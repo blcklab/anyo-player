@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install
+      - run: npm run check
+
+  framework-adapters:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: vue-3.4.38
+            install: npm install --no-save vue@3.4.38
+          - name: vue-3.5.40
+            install: npm install --no-save vue@3.5.40
+          - name: react-18.2.0
+            install: npm install --no-save react@18.2.0 react-dom@18.2.0 @types/react@18 @types/react-dom@18
+          - name: react-19.2.8
+            install: npm install --no-save react@19.2.8 react-dom@19.2.8 @types/react@19 @types/react-dom@19
+    name: adapters-${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: ${{ matrix.install }}
+      - run: npm ls vue react react-dom --depth=0 || true
+      - run: npm run typecheck
+      - run: npm run typecheck:examples
+      - run: npm run test:adapters
+
+  browser-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm install --no-save playwright@1.62.0
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:browser:matrix
+        env:
+          ANYO_PLAYER_REQUIRE_BROWSER_MATRIX: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-validation-matrix
+          path: validation-results/
+
+  memory-profile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm install --no-save playwright@1.62.0
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:memory
+        env:
+          ANYO_PLAYER_REQUIRE_MEMORY_PROFILE: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: memory-profile
+          path: validation-results/
+
+  real-safari:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: sudo safaridriver --enable
+      - run: npm run test:safari

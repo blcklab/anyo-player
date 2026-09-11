@@ -1,0 +1,16 @@
+{
+  "format": "@blcklab/anyo-player/validation-report",
+  "schemaVersion": 1,
+  "packageVersion": "0.5.0",
+  "createdAt": null,
+  "environment": {
+    "browser": "",
+    "browserVersion": "",
+    "operatingSystem": "",
+    "device": "",
+    "gpu": "",
+    "backend": "webgl2"
+  },
+  "entries": [],
+  "notes": []
+}

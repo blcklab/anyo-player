@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anyo Player Custom Element</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #09090b; color: #fafafa; font-family: system-ui, sans-serif; }
+    main { width: min(1100px, calc(100% - 32px)); margin: 32px auto; }
+    anyo-player { display: block; width: 100%; min-height: 620px; border: 1px solid #27272a; }
+    button { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <anyo-player
+      id="world"
+      src="./world.anyo.json"
+      activation="visible"
+      preload="source"
+      backend="auto"
+      pause-when-offscreen
+      aria-label="Custom-element Anyo world"
+    ></anyo-player>
+    <button id="replace" type="button">Reload world safely</button>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

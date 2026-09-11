@@ -1,0 +1,86 @@
+export type AnyoPlayerErrorCode =
+  | 'PLAYER_INVALID_CONTAINER'
+  | 'PLAYER_INVALID_SOURCE'
+  | 'PLAYER_JSON_PARSE_FAILED'
+  | 'PLAYER_FETCH_UNAVAILABLE'
+  | 'PLAYER_FETCH_FAILED'
+  | 'PLAYER_FETCH_ABORTED'
+  | 'PLAYER_SOURCE_TOO_LARGE'
+  | 'PLAYER_INTEGRITY_UNAVAILABLE'
+  | 'PLAYER_INTEGRITY_FAILED'
+  | 'PLAYER_PACKAGE_ENTRY_MISSING'
+  | 'PLAYER_ARCHIVE_DECODER_REQUIRED'
+  | 'PLAYER_QUALITY_STORAGE_UNAVAILABLE'
+  | 'PLAYER_QUALITY_PREFERENCE_INVALID'
+  | 'PLAYER_VIEW_STORAGE_UNAVAILABLE'
+  | 'PLAYER_VIEW_PREFERENCE_INVALID'
+  | 'PLAYER_PRELOAD_FAILED'
+  | 'PLAYER_NAVIGATION_DISABLED'
+  | 'PLAYER_NAVIGATION_UNKNOWN_WORLD'
+  | 'PLAYER_NAVIGATION_WORLD_EXISTS'
+  | 'PLAYER_NAVIGATION_CANCELED'
+  | 'PLAYER_NAVIGATION_BUSY'
+  | 'PLAYER_NAVIGATION_FAILED'
+  | 'PLAYER_WORLD_LOAD_FAILED'
+  | 'PLAYER_WORLD_REPLACE_FAILED'
+  | 'PLAYER_RENDERER_FAILED'
+  | 'PLAYER_RENDERER_LOST'
+  | 'PLAYER_POINTER_LOCK_FAILED'
+  | 'PLAYER_RUNTIME_CONTROL_FAILED'
+  | 'PLAYER_FULLSCREEN_UNAVAILABLE'
+  | 'PLAYER_FULLSCREEN_FAILED'
+  | 'PLAYER_VR_DISABLED'
+  | 'PLAYER_VR_SUPPORT_FAILED'
+  | 'PLAYER_VR_UNSUPPORTED'
+  | 'PLAYER_VR_ENTER_FAILED'
+  | 'PLAYER_VR_EXIT_FAILED'
+  | 'PLAYER_SESSION_DISABLED'
+  | 'PLAYER_SESSION_INVALID'
+  | 'PLAYER_SESSION_STORAGE_UNAVAILABLE'
+  | 'PLAYER_SESSION_SAVE_FAILED'
+  | 'PLAYER_SESSION_LOAD_FAILED'
+  | 'PLAYER_SESSION_RESTORE_FAILED'
+  | 'PLAYER_SESSION_WORLD_MISMATCH'
+  | 'PLAYER_INTERACTION_FAILED'
+  | 'PLAYER_INPUT_BINDINGS_INVALID'
+  | 'PLAYER_INPUT_BINDINGS_STORAGE_UNAVAILABLE'
+  | 'PLAYER_INPUT_BINDINGS_SAVE_FAILED'
+  | 'PLAYER_INPUT_BINDINGS_LOAD_FAILED'
+  | 'PLAYER_AUDIO_DISABLED'
+  | 'PLAYER_AUDIO_UNLOCK_FAILED'
+  | 'PLAYER_AUDIO_CONTROL_FAILED'
+  | 'PLAYER_SCREENSHOT_UNAVAILABLE'
+  | 'PLAYER_SCREENSHOT_FAILED'
+  | 'PLAYER_RENDERER_RECOVERY_DISABLED'
+  | 'PLAYER_RENDERER_RECOVERY_FAILED'
+  | 'PLAYER_ANALYTICS_SINK_FAILED'
+  | 'PLAYER_INVALID_STATE'
+  | 'PLAYER_OPERATION_SUPERSEDED'
+  | 'PLAYER_DISPOSED'
+
+export class AnyoPlayerError extends Error {
+  readonly code: AnyoPlayerErrorCode
+  override readonly cause: unknown
+
+  constructor(code: AnyoPlayerErrorCode, message: string, options: { cause?: unknown } = {}) {
+    super(message)
+    this.name = 'AnyoPlayerError'
+    this.code = code
+    this.cause = options.cause
+  }
+}
+
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === 'AbortError'
+    : Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError')
+}
+
+export function toPlayerError(
+  error: unknown,
+  fallbackCode: AnyoPlayerErrorCode,
+  fallbackMessage: string,
+): AnyoPlayerError {
+  if (error instanceof AnyoPlayerError) return error
+  return new AnyoPlayerError(fallbackCode, fallbackMessage, { cause: error })
+}

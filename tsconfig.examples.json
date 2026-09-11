@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@blcklab/anyo-player": [
+        "./src/index.ts"
+      ],
+      "@blcklab/anyo-player/element": [
+        "./src/element.ts"
+      ],
+      "@blcklab/anyo-player/vue": [
+        "./src/vue.ts"
+      ],
+      "@blcklab/anyo-player/react": [
+        "./src/react.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "examples/**/*.ts",
+    "examples/global.d.ts"
+  ]
+}

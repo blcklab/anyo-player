@@ -1,0 +1,21 @@
+{
+  "format": "@blcklab/anyo-player/stable-validation-matrix",
+  "schemaVersion": 1,
+  "packageVersion": "0.5.0",
+  "createdAt": "REPLACE_WITH_ISO_TIMESTAMP",
+  "environment": { "tester": "", "device": "", "os": "", "browser": "", "gpu": "", "headset": "" },
+  "entries": [
+    { "id": "core.load", "required": true, "status": "pending", "evidence": "" },
+    { "id": "assets.remote-glb-textures", "required": true, "status": "pending", "evidence": "" },
+    { "id": "loss.webgl2", "required": true, "status": "pending", "evidence": "" },
+    { "id": "loss.webgpu", "required": true, "status": "pending", "evidence": "" },
+    { "id": "memory.long-running", "required": true, "status": "pending", "evidence": "" },
+    { "id": "input.pointer-lock-focus-blur", "required": true, "status": "pending", "evidence": "" },
+    { "id": "fullscreen", "required": true, "status": "pending", "evidence": "" },
+    { "id": "input.touch", "required": true, "status": "pending", "evidence": "" },
+    { "id": "accessibility.keyboard-screen-reader", "required": true, "status": "pending", "evidence": "" },
+    { "id": "xr.physical-headset", "required": true, "status": "pending", "evidence": "" },
+    { "id": "mobile.thermal-quality", "required": true, "status": "pending", "evidence": "" },
+    { "id": "large-world.traversal-30m", "required": true, "status": "pending", "evidence": "" }
+  ]
+}
