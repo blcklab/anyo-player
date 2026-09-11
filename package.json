@@ -23,16 +23,7 @@
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE",
-    "docs",
-    "validation",
-    "scripts/validation-server.mjs",
-    "scripts/validate-evidence.mjs",
-    "scripts/browser-matrix.mjs",
-    "scripts/memory-profile.mjs",
-    "scripts/safari-smoke.mjs",
-    "scripts/verify-published-cdn.mjs",
-    "scripts/lib/static-server.mjs"
+    "LICENSE"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
