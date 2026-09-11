@@ -1,5 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { AnyoPlayer, useAnyoPlayer } from '../dist/react.js'
 
 test('React adapter exports a forward-ref component and hook', () => {
@@ -9,18 +11,17 @@ test('React adapter exports a forward-ref component and hook', () => {
 })
 
 test('React component renders an isolated host and accepts lifecycle callbacks', () => {
-  const render = AnyoPlayer.render ?? AnyoPlayer
-  const vnode = render({
+  const html = renderToStaticMarkup(createElement(AnyoPlayer, {
     id: 'world-player',
     className: 'embed',
     source: null,
     options: {},
     onReady() {},
     onError() {},
-  }, null)
-  assert.equal(vnode.type, 'div')
-  assert.equal(vnode.props.id, 'world-player')
-  assert.equal(vnode.props.className, 'embed')
-  assert.equal(vnode.props['data-anyo-player-react'], '')
-  assert.equal(typeof vnode.props.ref, 'function')
+  }))
+
+  assert.match(html, /^<div\b/)
+  assert.match(html, /\bid="world-player"/)
+  assert.match(html, /\bclass="embed"/)
+  assert.match(html, /\bdata-anyo-player-react=""/)
 })

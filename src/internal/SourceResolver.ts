@@ -162,6 +162,15 @@ function encodeBase64(bytes: Uint8Array): string {
   throw new TypeError('Base64 encoding is unavailable.')
 }
 
+function toDigestBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = bytes.buffer
+  if (buffer instanceof ArrayBuffer) {
+    if (bytes.byteOffset === 0 && bytes.byteLength === buffer.byteLength) return buffer
+    return buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  }
+  return Uint8Array.from(bytes).buffer
+}
+
 async function verifyIntegrity(bytes: Uint8Array, integrity: string | undefined, required: boolean): Promise<AnyoPlayerSourceInfo['integrity']> {
   if (!integrity) return 'not-requested'
   const subtle = globalThis.crypto?.subtle
@@ -169,7 +178,7 @@ async function verifyIntegrity(bytes: Uint8Array, integrity: string | undefined,
     if (required) throw new AnyoPlayerError('PLAYER_INTEGRITY_UNAVAILABLE', 'SHA-256 integrity verification is unavailable in this environment.')
     return 'unavailable'
   }
-  const digest = new Uint8Array(await subtle.digest('SHA-256', bytes))
+  const digest = new Uint8Array(await subtle.digest('SHA-256', toDigestBuffer(bytes)))
   const expected = integrity.trim()
   const actualBase64 = `sha256-${encodeBase64(digest)}`
   const actualHex = [...digest].map(value => value.toString(16).padStart(2, '0')).join('')

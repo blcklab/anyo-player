@@ -2,6 +2,8 @@
 
 ## 0.5.0
 
+- Normalize integrity-verification byte views to `ArrayBuffer` before Web Crypto hashing for TypeScript 5.8+ DOM compatibility.
+
 The first stable `0.5` release keeps the validated runtime from `0.5.0-rc.2` and turns it into the production package boundary.
 
 ### Highlights
