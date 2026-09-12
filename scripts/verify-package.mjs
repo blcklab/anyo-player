@@ -18,31 +18,6 @@ for (const required of [
   'dist/element-define.js', 'dist/element-define.d.ts',
   'dist/styles.css',
   'README.md', 'LICENSE', 'CHANGELOG.md',
-  'docs/README.md', 'docs/PRODUCTION.md', 'docs/TESTING.md',
-  'docs/api/API.md',
-  'docs/guides/MIGRATION.md', 'docs/guides/SUPPORT.md',
-  'docs/integrations/SEKAI64_080_BRIDGE.md',
-  'validation/index.html', 'validation/main.js', 'validation/styles.css',
-  'validation/stable-matrix.template.json', 'validation/report.template.json',
-  'validation/assets/triangle.glb',
-  'validation/assets/base-color.png',
-  'validation/assets/metallic-roughness.png',
-  'validation/assets/normal.png',
-  'validation/assets/emissive.png',
-  'validation/assets/occlusion.png',
-  'validation/framework/vue-3.4.html',
-  'validation/framework/vue-3.5.html',
-  'validation/framework/react-18.html',
-  'validation/framework/react-19.html',
-  'validation/framework/vue-runtime.js',
-  'validation/framework/react-runtime.js',
-  'scripts/validation-server.mjs',
-  'scripts/validate-evidence.mjs',
-  'scripts/browser-matrix.mjs',
-  'scripts/memory-profile.mjs',
-  'scripts/safari-smoke.mjs',
-  'scripts/verify-published-cdn.mjs',
-  'scripts/lib/static-server.mjs',
 ]) {
   assert(paths.includes(required), `Packed package is missing ${required}`)
 }
@@ -51,7 +26,9 @@ for (const path of paths) {
   assert(!path.startsWith('src/'), `Packed package leaked source file ${path}`)
   assert(!path.startsWith('tests/'), `Packed package leaked test file ${path}`)
   assert(!path.startsWith('.internal/'), `Packed package leaked maintainer-only file ${path}`)
+  assert(!path.startsWith('validation/'), `Packed package leaked validation file ${path}`)
+  assert(!path.startsWith('scripts/'), `Packed package leaked repository script ${path}`)
   assert(!path.startsWith('node_modules/'), `Packed package leaked dependency file ${path}`)
 }
 
-console.log(`Verified npm package contents: ${report.files.length} files, ${report.size} bytes compressed; maintainer-only docs are excluded`)
+console.log(`Verified npm package contents: ${report.files.length} files, ${report.size} bytes compressed; repository-only files are excluded`)
