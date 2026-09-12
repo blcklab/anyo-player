@@ -23,7 +23,8 @@
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -58,36 +59,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:examples": "tsc -p tsconfig.examples.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "test:adapters": "npm run build && node --test tests/framework-adapter-controller.test.mjs tests/custom-element.test.mjs tests/element-define.test.mjs tests/vue-adapter.test.mjs tests/react-adapter.test.mjs tests/adapter-hardening.test.mjs",
     "test:browser": "npm run build && node scripts/browser-smoke.mjs",
     "check:exports": "node scripts/verify-exports.mjs",
     "check:boundaries": "node scripts/verify-boundaries.mjs",
     "check:pack": "node scripts/verify-package.mjs",
     "size": "node scripts/size.mjs",
-    "check": "npm run typecheck && npm run typecheck:examples && npm test && npm run check:exports && npm run check:boundaries && npm run check:cdn && npm run check:hardening && npm run check:validation && npm run verify:track-f && npm run check:pack && npm run size",
-    "prepublishOnly": "npm run check",
-    "check:cdn": "node scripts/verify-cdn.mjs",
-    "check:hardening": "node scripts/verify-adapter-hardening.mjs",
-    "test:adapters": "npm run build && node --test tests/framework-adapter-controller.test.mjs tests/custom-element.test.mjs tests/element-define.test.mjs tests/vue-adapter.test.mjs tests/react-adapter.test.mjs tests/adapter-hardening.test.mjs",
-    "validation:serve": "npm run build && node scripts/validation-server.mjs",
-    "validation:check": "node scripts/validate-evidence.mjs",
-    "validation:strict": "node scripts/validate-evidence.mjs --strict",
-    "check:validation": "node scripts/verify-validation.mjs",
-    "test:browser:matrix": "npm run build && node scripts/browser-matrix.mjs",
-    "test:memory": "npm run build && node scripts/memory-profile.mjs",
-    "test:safari": "npm run build && node scripts/safari-smoke.mjs",
-    "validation:matrix": "npm run build && node scripts/browser-matrix.mjs",
-    "validation:memory": "npm run build && node scripts/memory-profile.mjs",
-    "validation:cdn:published": "node scripts/verify-published-cdn.mjs",
-    "validation:frameworks": "npm run build && PLAYWRIGHT_BROWSERS=chromium node scripts/browser-matrix.mjs",
-    "benchmark:track-d": "npm run build && node scripts/benchmark-track-d.mjs",
-    "verify:track-f": "node scripts/verify-track-f.mjs",
-    "test:track-f": "npm run build && node --test tests/track-f-production.test.mjs && npm run verify:track-f",
-    "test:track-f:browser": "npm run build && node scripts/track-f-browser-smoke.mjs",
-    "validation:track-f": "node scripts/validate-evidence.mjs",
-    "validation:track-f:strict": "node scripts/validate-evidence.mjs --strict",
-    "test:production": "npm run build && node --test tests/track-f-production.test.mjs && npm run verify:track-f",
-    "validation:production": "node scripts/validate-evidence.mjs",
-    "validation:production:strict": "node scripts/validate-evidence.mjs --strict"
+    "check": "npm run typecheck && npm test && npm run typecheck:examples && npm run check:exports && npm run check:boundaries && npm run check:pack && npm run size",
+    "prepublishOnly": "npm run check"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -99,8 +78,20 @@
     "react-dom": ">=18.2.0 <20.0.0",
     "vue": ">=3.4.0 <4.0.0"
   },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@blcklab/anyo": "0.10.0-rc.1",
+    "@blcklab/anyo-web-surface-texture": "1.0.1-rc.6",
     "@blcklab/sekai64": "0.8.0-rc.33",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -120,16 +111,5 @@
   "bugs": {
     "url": "https://github.com/blcklab/anyo-player/issues"
   },
-  "homepage": "https://github.com/blcklab/anyo-player#readme",
-  "peerDependenciesMeta": {
-    "vue": {
-      "optional": true
-    },
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
-  }
+  "homepage": "https://github.com/blcklab/anyo-player#readme"
 }

@@ -1,0 +1,88 @@
+--- a/tests/vue-adapter.test.mjs
++++ b/tests/vue-adapter.test.mjs
+@@ -1,5 +1,7 @@
+ import test from 'node:test'
+ import assert from 'node:assert/strict'
++import { createSSRApp, defineComponent, h } from 'vue'
++import { renderToString } from 'vue/server-renderer'
+ import { AnyoPlayer, useAnyoPlayer } from '../dist/vue.js'
+ 
+ test('Vue adapter exports a component and composable', () => {
+@@ -8,27 +10,55 @@
+   assert.equal(typeof useAnyoPlayer, 'function')
+ })
+ 
+-test('Vue component exposes lifecycle methods and renders an isolated host', () => {
+-  let exposed
+-  const emitted = []
+-  const render = AnyoPlayer.setup({
+-    source: null,
+-    options: {},
+-    tag: 'section',
+-    pauseOnDeactivated: true,
+-  }, {
+-    attrs: { id: 'world-player', class: 'embed' },
+-    emit: (...args) => emitted.push(args),
+-    expose: value => { exposed = value },
++test('Vue composable exposes lifecycle methods inside component setup', async () => {
++  let api
++
++  const Harness = defineComponent({
++    name: 'AnyoPlayerComposableHarness',
++    setup() {
++      api = useAnyoPlayer({ source: null })
++      return () => h('div', { 'data-anyo-player-vue-harness': '' })
++    },
++  })
++
++  const app = createSSRApp(Harness)
++  const warnings = []
++  app.config.warnHandler = message => warnings.push(message)
++  const html = await renderToString(app)
++
++  assert.match(html, /^<div\b/)
++  assert.match(html, /\bdata-anyo-player-vue-harness\b/)
++  assert.ok(api)
++  assert.equal(typeof api.load, 'function')
++  assert.equal(typeof api.activate, 'function')
++  assert.equal(typeof api.replaceWorld, 'function')
++  assert.equal(typeof api.disposeAsync, 'function')
++  assert.equal(api.player.value, null)
++  assert.deepEqual(warnings, [])
++})
++
++test('Vue component renders an isolated host through a real Vue instance', async () => {
++  const App = defineComponent({
++    setup() {
++      return () => h(AnyoPlayer, {
++        id: 'world-player',
++        class: 'embed',
++        source: null,
++        options: {},
++        tag: 'section',
++        pauseOnDeactivated: true,
++      })
++    },
+   })
+-  const vnode = render()
+-  assert.equal(vnode.type, 'section')
+-  assert.equal(vnode.props.id, 'world-player')
+-  assert.equal(vnode.props['data-anyo-player-vue'], '')
+-  assert.equal(typeof exposed.load, 'function')
+-  assert.equal(typeof exposed.activate, 'function')
+-  assert.equal(typeof exposed.replaceWorld, 'function')
+-  assert.equal(typeof exposed.disposeAsync, 'function')
+-  assert.equal(exposed.player.value, null)
+-  assert.deepEqual(emitted, [])
++
++  const app = createSSRApp(App)
++  const warnings = []
++  app.config.warnHandler = message => warnings.push(message)
++  const html = await renderToString(app)
++
++  assert.match(html, /^<section\b/)
++  assert.match(html, /\bid="world-player"/)
++  assert.match(html, /\bclass="embed"/)
++  assert.match(html, /\bdata-anyo-player-vue\b/)
++  assert.deepEqual(warnings, [])
+ })
