@@ -23,8 +23,7 @@
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE",
-    "docs"
+    "LICENSE"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
