@@ -125,7 +125,7 @@ test('pointer-lock rejection is recoverable and returns to the enter-ready state
   await player.disposeAsync()
 })
 
-test('non-pointer-lock mode maps canvas mouse movement and exits cleanly on blur', async () => {
+test('non-pointer-lock mode maps canvas and document mouse movement and exits cleanly on blur', async () => {
   const world = new FakeWorld()
   const document = new FakeDocument()
   const container = new FakeContainer(document)
@@ -149,7 +149,7 @@ test('non-pointer-lock mode maps canvas mouse movement and exits cleanly on blur
   assert.deepEqual(world.exploration.lookDeltas, [[5, 7]])
 
   document.dispatchEvent(fakeEvent('mousemove', { movementX: 99, movementY: 99 }))
-  assert.deepEqual(world.exploration.lookDeltas, [[5, 7]])
+  assert.deepEqual(world.exploration.lookDeltas, [[5, 7], [99, 99]])
 
   player.canvas.blur()
   assert.equal(player.state, 'ready')

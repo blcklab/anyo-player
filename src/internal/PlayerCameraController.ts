@@ -1,6 +1,5 @@
 import {
   CollisionWorld,
-  FirstPersonController,
   type CameraProjection,
   type ExplorationRuntimeController,
   type FirstPersonControllerOptions,
@@ -10,12 +9,17 @@ import {
 } from '@blcklab/anyo'
 import type {
   AnyoPlayerCameraFrameOptions,
+  AnyoPlayerCharacterAnchorOptions,
+  AnyoPlayerThirdPersonCameraOptions,
+  AnyoPlayerThirdPersonOrbitOptions,
   AnyoPlayerCameraMode,
   AnyoPlayerCameraModeOptions,
   AnyoPlayerFallRecoveryOptions,
   AnyoPlayerFallRecoveryStatus,
   AnyoPlayerTeleportOptions,
 } from '../types.js'
+import { PlayerBody } from './PlayerBody.js'
+import { cameraArmFraction, setViewRotation } from './PlayerView.js'
 
 interface CameraControllerCallbacks {
   onModeChange?: (previous: AnyoPlayerCameraMode, mode: AnyoPlayerCameraMode) => void
@@ -65,7 +69,7 @@ function rotationToTarget(position: Vec3, target: Vec3): readonly [number, numbe
 export class PlayerCameraController implements ExplorationRuntimeController {
   readonly plugin: WorldPlugin
   private context: PluginRuntimeContext | null = null
-  private firstPerson: FirstPersonController | null = null
+  private body: PlayerBody | null = null
   private collisions: CollisionWorld | null = null
   private unbind: (() => void) | null = null
   private modeValue: AnyoPlayerCameraMode = 'explore'
@@ -94,9 +98,42 @@ export class PlayerCameraController implements ExplorationRuntimeController {
   private recoveryAttempts = 0
   private recoveryDisabled = false
   private lastRecoveryAt = -Infinity
+  private characterAnchor: {
+    entityId: string
+    offset: Vec3
+    followYaw: boolean
+    yawOffset: number
+    scale: Vec3 | null
+    facing: 'camera' | 'movement'
+  } | null = null
+  private thirdPersonCamera: {
+    distance: number
+    targetHeight: number
+    shoulderOffset: number
+    collision: boolean
+    orbit: {
+      button: 0 | 1 | 2
+      sensitivity: number
+      minPitch: number
+      maxPitch: number
+      minDistance: number
+      maxDistance: number
+      zoomSensitivity: number
+      invertY: boolean
+      yaw: number
+      pitch: number
+    } | null
+  } | null = null
+  private thirdPersonOrbitDragging = false
+  private replacingWorld = false
+  private suspendedWorld: PluginRuntimeContext['world'] | null = null
+  private suspendedPose: { position: Vec3; rotation: readonly [number, number] } | null = null
+  private suspendedAnchor: PlayerCameraController['characterAnchor'] = null
+  private suspendedView: PlayerCameraController['thirdPersonCamera'] = null
+  private static readonly characterAnchorSource = 'anyo:player-character-anchor'
 
   constructor(
-    private readonly firstPersonOptions: FirstPersonControllerOptions,
+    private readonly bodyOptions: FirstPersonControllerOptions,
     private readonly recoveryOptions: false | AnyoPlayerFallRecoveryOptions,
     private readonly callbacks: CameraControllerCallbacks = {},
   ) {
@@ -107,48 +144,213 @@ export class PlayerCameraController implements ExplorationRuntimeController {
       applyChanges: (changes, context) => {
         if (changes.some(change => change.type === 'collider-state')) this.setColliders(context.compiled.colliders)
       },
-      teardown: () => this.teardown(),
-      dispose: () => this.teardown(),
+      teardown: () => {
+        this.suspendedWorld = this.replacingWorld ? null : this.context?.world ?? null
+        this.suspendedPose = this.currentBodyPose()
+        this.suspendedAnchor = this.characterAnchor
+        this.suspendedView = this.thirdPersonCamera
+        this.teardown()
+      },
+      dispose: () => {
+        this.teardown()
+        this.suspendedWorld = null; this.suspendedPose = null
+        this.suspendedAnchor = null; this.suspendedView = null
+      },
     }
   }
+
+  setWorldReplacement(active: boolean): void { this.replacingWorld = active }
 
   get mode(): AnyoPlayerCameraMode { return this.modeValue }
   get enabled(): boolean { return this.enabledValue }
   get inputEnabled(): boolean { return this.inputEnabledValue }
+  get characterAnchorEntity(): string | null { return this.characterAnchor?.entityId ?? null }
+  get thirdPersonCameraEnabled(): boolean { return this.thirdPersonCamera !== null }
+
+  setCharacterAnchor(options: false | AnyoPlayerCharacterAnchorOptions): void {
+    const context = this.requireContext()
+    if (options === false) {
+      this.setThirdPersonCamera(false)
+      this.clearCharacterAnchor()
+      return
+    }
+
+    const requested = options.character?.trim() || context.document.exploration?.character?.trim()
+    if (!requested) throw new TypeError('Character anchor requires an entity id. Pass { character } or set world exploration.character.')
+    const entity = context.compiled.entityById.get(requested) ?? context.compiled.entityByAuthoringId.get(requested)
+    if (!entity) throw new TypeError(`Character anchor entity "${requested}" was not found in the loaded world.`)
+
+    const offset = options.offset ?? [0, 0, 0]
+    if (offset.some(value => !Number.isFinite(value))) throw new TypeError('Character anchor offset must contain finite numbers.')
+    const yawOffset = options.yawOffset ?? 0
+    if (!Number.isFinite(yawOffset)) throw new TypeError('Character anchor yawOffset must be finite.')
+    let scale: Vec3 | null = null
+    if (options.scale !== undefined) {
+      scale = typeof options.scale === 'number'
+        ? [options.scale, options.scale, options.scale]
+        : copy(options.scale)
+      if (scale.some(value => !Number.isFinite(value) || value <= 0)) {
+        throw new TypeError('Character anchor scale must contain positive finite numbers.')
+      }
+    }
+
+    if (this.characterAnchor && this.characterAnchor.entityId !== entity.id) {
+      context.transforms.clear(this.characterAnchor.entityId, PlayerCameraController.characterAnchorSource)
+    }
+    this.characterAnchor = {
+      entityId: entity.id,
+      offset: copy(offset),
+      followYaw: options.followYaw !== false,
+      yawOffset,
+      scale,
+      facing: options.facing ?? 'camera',
+    }
+    this.writeCharacterAnchor()
+  }
+
+  clearCharacterAnchor(): void {
+    if (this.thirdPersonCamera && this.context) this.setThirdPersonCamera(false)
+    if (!this.context || !this.characterAnchor) {
+      this.characterAnchor = null
+      return
+    }
+    this.context.transforms.clear(this.characterAnchor.entityId, PlayerCameraController.characterAnchorSource)
+    this.characterAnchor = null
+  }
+
+  setThirdPersonCamera(options: false | AnyoPlayerThirdPersonCameraOptions): void {
+    this.requireContext()
+
+    if (options === false) {
+      const previousOrbit = this.thirdPersonCamera?.orbit
+      if (previousOrbit) this.body?.setLookAngles(previousOrbit.yaw, previousOrbit.pitch)
+      this.body?.setMovementYawOverride(null)
+      this.thirdPersonOrbitDragging = false
+      this.thirdPersonCamera = null
+      this.applyExploreCamera()
+      return
+    }
+
+    if (this.modeValue !== 'explore') throw new TypeError('Third-person follow camera is only available in explore mode.')
+    if (!this.characterAnchor) throw new TypeError('Third-person follow camera requires a character anchor first.')
+
+    const targetHeight = options.targetHeight ?? 1.35
+    const shoulderOffset = options.shoulderOffset ?? 0
+    if (!Number.isFinite(targetHeight)) throw new TypeError('Third-person camera targetHeight must be finite.')
+    if (!Number.isFinite(shoulderOffset)) throw new TypeError('Third-person camera shoulderOffset must be finite.')
+
+    const orbit = options.orbit ? this.normalizeThirdPersonOrbit(options.orbit) : null
+    const priorOrbit = this.thirdPersonCamera?.orbit
+    const pose = this.currentBodyPose()
+    if (orbit) {
+      orbit.yaw = priorOrbit?.yaw ?? pose.rotation[0]
+      orbit.pitch = clamp(priorOrbit?.pitch ?? pose.rotation[1], orbit.minPitch, orbit.maxPitch)
+    }
+    let distance = options.distance ?? this.thirdPersonCamera?.distance ?? 4
+    if (!Number.isFinite(distance) || distance <= 0) throw new TypeError('Third-person camera distance must be a positive finite number.')
+    if (orbit) distance = clamp(distance, orbit.minDistance, orbit.maxDistance)
+
+    this.thirdPersonCamera = { distance, targetHeight, shoulderOffset, collision: options.collision !== false, orbit }
+    this.thirdPersonOrbitDragging = false
+    this.body?.setMovementYawOverride(orbit?.yaw ?? null)
+    if (orbit) this.releasePointerLock()
+    this.writeCharacterAnchor()
+    this.applyThirdPersonCamera()
+  }
+
+  prefersPointerLock(): boolean { return !this.thirdPersonCamera?.orbit }
+
+  usesPointerLookButton(button: number): boolean {
+    return Boolean(this.thirdPersonCamera?.orbit && this.thirdPersonCamera.orbit.button === button)
+  }
+
+  beginPointerLook(button: number): boolean {
+    if (!this.usesPointerLookButton(button)) return false
+    this.thirdPersonOrbitDragging = true
+    return true
+  }
+
+  endPointerLook(button: number): void {
+    if (this.usesPointerLookButton(button)) this.thirdPersonOrbitDragging = false
+  }
+
+  acceptsPointerLook(): boolean {
+    return this.thirdPersonCamera?.orbit ? this.thirdPersonOrbitDragging : true
+  }
+
+  addZoomDelta(deltaY: number): boolean {
+    const view = this.thirdPersonCamera
+    const orbit = view?.orbit
+    if (!view || !orbit || !Number.isFinite(deltaY)) return false
+    view.distance = clamp(view.distance * Math.exp(deltaY * orbit.zoomSensitivity), orbit.minDistance, orbit.maxDistance)
+    this.applyThirdPersonCamera()
+    return true
+  }
+
+  private normalizeThirdPersonOrbit(options: true | AnyoPlayerThirdPersonOrbitOptions): NonNullable<NonNullable<PlayerCameraController['thirdPersonCamera']>['orbit']> {
+    const value = options === true ? {} : options
+    const button = value.button ?? 2
+    const sensitivity = value.sensitivity ?? 1
+    const minPitch = value.minPitch ?? -1.2
+    const maxPitch = value.maxPitch ?? 1.2
+    const minDistance = value.minDistance ?? 1.25
+    const maxDistance = value.maxDistance ?? 12
+    const zoomSensitivity = value.zoomSensitivity ?? .0015
+    if (![0, 1, 2].includes(button)) throw new TypeError('Third-person orbit button must be 0, 1, or 2.')
+    if (!Number.isFinite(sensitivity) || sensitivity <= 0) throw new TypeError('Third-person orbit sensitivity must be a positive finite number.')
+    if (!Number.isFinite(minPitch) || !Number.isFinite(maxPitch) || minPitch >= maxPitch) throw new TypeError('Third-person orbit pitch limits must be finite and minPitch must be less than maxPitch.')
+    if (!Number.isFinite(minDistance) || !Number.isFinite(maxDistance) || minDistance <= 0 || minDistance >= maxDistance) throw new TypeError('Third-person orbit distance limits must be positive and minDistance must be less than maxDistance.')
+    if (!Number.isFinite(zoomSensitivity) || zoomSensitivity <= 0) throw new TypeError('Third-person orbit zoomSensitivity must be a positive finite number.')
+    return { button, sensitivity, minPitch, maxPitch, minDistance, maxDistance, zoomSensitivity, invertY: value.invertY === true, yaw: 0, pitch: 0 }
+  }
 
   setEnabled(enabled: boolean): void {
     this.enabledValue = Boolean(enabled)
-    this.syncFirstPersonState()
+    this.syncBodyState()
   }
 
   setInputEnabled(enabled: boolean): void {
     this.inputEnabledValue = Boolean(enabled)
-    this.syncFirstPersonState()
+    this.syncBodyState()
   }
 
   clearInput(): void {
-    this.firstPerson?.clearInput()
+    this.body?.clearInput()
     this.pressed.clear()
     this.dragging = false
+    this.thirdPersonOrbitDragging = false
     this.releaseActivePointer()
   }
 
-  releasePointerLock(): void { this.firstPerson?.releasePointerLock() }
+  releasePointerLock(): void {
+    const canvas = this.context?.renderer.canvas
+    if (typeof document !== 'undefined' && document.pointerLockElement === canvas) void document.exitPointerLock?.()
+  }
 
   setMoveAxes(right: number, forward: number): void {
-    if (this.modeValue === 'explore') this.firstPerson?.setMoveAxes(right, forward)
+    if (this.modeValue === 'explore') this.body?.setMoveAxes(right, forward)
   }
 
   setRun(running: boolean): void {
-    if (this.modeValue === 'explore') this.firstPerson?.setRun(running)
+    if (this.modeValue === 'explore') this.body?.setRun(running)
   }
 
   addLookDelta(deltaX: number, deltaY: number): void {
-    if (this.modeValue === 'explore') this.firstPerson?.addLookDelta(deltaX, deltaY)
-    else if (this.modeValue === 'free') this.rotateFree(deltaX, deltaY)
+    if (this.modeValue === 'explore') {
+      const orbit = this.thirdPersonCamera?.orbit
+      if (orbit && this.body) {
+        const sensitivity = this.body.lookSensitivity * orbit.sensitivity
+        orbit.yaw -= deltaX * sensitivity
+        const vertical = orbit.invertY ? -deltaY : deltaY
+        orbit.pitch = clamp(orbit.pitch - vertical * sensitivity, orbit.minPitch, orbit.maxPitch)
+        this.body.setMovementYawOverride(orbit.yaw)
+        this.writeCharacterAnchor()
+        this.applyThirdPersonCamera()
+      } else this.body?.addLookDelta(deltaX, deltaY)
+    } else if (this.modeValue === 'free') this.rotateFree(deltaX, deltaY)
   }
 
-  requestJump(): void {}
+  requestJump(): void { if (this.modeValue === 'explore') this.body?.requestJump() }
 
   setFieldOfView(fieldOfView: number): void {
     if (!Number.isFinite(fieldOfView)) throw new TypeError('Anyo Player field of view must be finite.')
@@ -167,9 +369,16 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     const context = this.requireContext()
     if (mode === this.modeValue && Object.keys(options).length === 0) return
     const previous = this.modeValue
-    if (previous === 'explore') this.explorePose = {
-      position: copy(context.renderer.camera.getPosition()),
-      rotation: [...context.renderer.camera.getRotation()] as [number, number],
+    if (previous === 'explore') {
+      const pose = this.currentBodyPose()
+      this.explorePose = {
+        position: copy(pose.position),
+        rotation: [...pose.rotation] as [number, number],
+      }
+      if (this.thirdPersonCamera) {
+        context.renderer.camera.setPosition(copy(pose.position))
+        setViewRotation(context.renderer.camera, pose.rotation[0], pose.rotation[1])
+      }
     }
     if (previous === 'top' && mode !== 'top') this.restoreSavedProjection()
     if (mode === 'top' && previous !== 'top') this.savedProjection = context.renderer.camera.getProjection?.() ?? null
@@ -178,15 +387,17 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     this.releasePointerLock()
     this.inspectionFocused = mode !== 'explore'
     this.applyModeOptions(options)
-    this.syncFirstPersonState()
+    this.syncBodyState()
     if (mode === 'explore') {
       const pose = options.restoreExplorePose === false ? null : this.explorePose
       if (pose) this.teleport({ ...pose, resetMotion: true })
+      else if (options.restoreExplorePose === false) this.teleport({ position: context.renderer.camera.getPosition(), rotation: context.renderer.camera.getRotation() })
     } else if (options.bounds || options.target) {
       this.frame(options)
     } else if (mode === 'orbit' || mode === 'top') {
       this.frame({ target: this.target, radius: Math.max(5, this.orbitDistance / 2) })
     }
+    if (mode === 'explore') this.applyExploreCamera()
     if (mode !== 'explore') this.focusInspectionCanvas()
     this.callbacks.onModeChange?.(previous, mode)
   }
@@ -209,7 +420,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
         far: Math.max(1_000, this.topHeight + framed.height + 500),
       })
       context.renderer.camera.setPosition([this.target[0], cameraY, this.target[2] + .001])
-      context.renderer.camera.setRotation(options.northUp === false ? this.orbitYaw : 0, -Math.PI / 2 + .00001)
+      setViewRotation(context.renderer.camera, options.northUp === false ? this.orbitYaw : 0, -Math.PI / 2 + .00001)
       return
     }
     if (this.modeValue === 'orbit') {
@@ -223,7 +434,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
       const position: Vec3 = [this.target[0] - forward[0] * distance, this.target[1] - forward[1] * distance, this.target[2] - forward[2] * distance]
       const rotation = rotationToTarget(position, this.target)
       context.renderer.camera.setPosition(position)
-      context.renderer.camera.setRotation(rotation[0], rotation[1])
+      setViewRotation(context.renderer.camera, rotation[0], rotation[1])
     }
   }
 
@@ -231,30 +442,54 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     const context = this.requireContext()
     const position = copy(options.position)
     if (!position.every(Number.isFinite)) throw new TypeError('Anyo Player teleport position must contain finite numbers.')
-    if (options.resetMotion !== false) this.recreateFirstPerson()
-    context.renderer.camera.setPosition(position)
-    if (options.rotation) context.renderer.camera.setRotation(options.rotation[0], options.rotation[1])
+    this.body?.teleport(position, options.rotation, options.resetMotion !== false)
     if (options.clearInput !== false) this.clearInput()
     this.recoveryDisabled = false
     this.recoveryAttempts = 0
     this.groundedSeconds = 0
+    this.writeCharacterAnchor()
+    this.applyExploreCamera()
   }
 
   private setup(context: PluginRuntimeContext): void {
+    const retained = this.suspendedWorld === context.world ? {
+      pose: this.suspendedPose, anchor: this.suspendedAnchor, view: this.suspendedView,
+    } : null
+    this.suspendedWorld = null; this.suspendedPose = null
+    this.suspendedAnchor = null; this.suspendedView = null
     this.teardown()
     this.context = context
     this.collisions = new CollisionWorld(context.compiled.colliders)
     this.spawnPose = { position: copy(context.renderer.camera.getPosition()), rotation: [...context.renderer.camera.getRotation()] as [number, number] }
     this.savedProjection = context.renderer.camera.getProjection?.() ?? null
     this.lastGroundedPose = this.resolveSupportedPose(this.spawnPose.position, this.spawnPose.rotation)
-    this.recreateFirstPerson()
+    this.createBody()
+    // Anyo applies spawn/active-camera pose AFTER plugin setup, then emits world:load.
+    this.cleanups.push(context.world.on('world:load', () => {
+      const spawn = context.document.exploration?.spawn
+      const room = spawn?.room ? context.compiled.roomById.get(spawn.room) : null
+      const position = spawn?.position
+      const spawnPosition = position && room
+        ? [(room.bounds.min[0] + room.bounds.max[0]) / 2 + position[0], room.bounds.min[1] + position[1], (room.bounds.min[2] + room.bounds.max[2]) / 2 + position[2]] as Vec3
+        : position
+      this.body?.teleport(retained?.pose?.position ?? spawnPosition ?? context.renderer.camera.getPosition(), retained?.pose?.rotation ?? (spawnPosition ? [0, 0] : context.renderer.camera.getRotation()))
+      if (retained?.anchor && context.compiled.entityById.has(retained.anchor.entityId)) {
+        this.characterAnchor = retained.anchor
+        this.thirdPersonCamera = retained.view
+        this.writeCharacterAnchor()
+      }
+      this.spawnPose = this.currentBodyPose()
+      this.lastGroundedPose = this.resolveSupportedPose(this.spawnPose.position, this.spawnPose.rotation)
+      this.applyExploreCamera()
+    }))
     this.unbind = context.world.exploration.bind(this)
     this.installInspectionInput(context.renderer.canvas)
   }
 
   private teardown(): void {
+    this.clearCharacterAnchor()
     this.unbind?.(); this.unbind = null
-    this.firstPerson?.dispose(); this.firstPerson = null
+    this.body?.dispose(); this.body = null
     for (const cleanup of this.cleanups.splice(0)) cleanup()
     if (this.canvas && this.originalTabIndex !== null) this.canvas.tabIndex = this.originalTabIndex
     this.canvas = null
@@ -266,31 +501,124 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     this.activePointerId = null
     this.inspectionFocused = false
     this.savedProjection = null
+    this.thirdPersonCamera = null
+    this.thirdPersonOrbitDragging = false
   }
 
-  private recreateFirstPerson(): void {
+  private createBody(): void {
     if (!this.context) return
-    this.firstPerson?.dispose()
-    this.firstPerson = new FirstPersonController(this.context, this.firstPersonOptions)
-    this.syncFirstPersonState()
+    this.body?.dispose()
+    this.body = new PlayerBody(this.context, this.bodyOptions)
+    this.syncBodyState()
   }
 
-  private syncFirstPersonState(): void {
-    this.firstPerson?.setEnabled(this.enabledValue && this.modeValue === 'explore')
-    this.firstPerson?.setInputEnabled(this.inputEnabledValue && this.modeValue === 'explore')
+  private syncBodyState(): void {
+    this.body?.setEnabled(this.enabledValue && this.modeValue === 'explore')
+    this.body?.setInputEnabled(this.inputEnabledValue && this.modeValue === 'explore')
   }
 
   private update(deltaSeconds: number): void {
-    if (!this.context || !this.enabledValue) return
+    if (!this.context || !this.enabledValue || this.context.world.xr.state === 'active') return
     if (this.modeValue === 'explore') {
-      this.firstPerson?.update(deltaSeconds)
+      this.body?.setMovementYawOverride(this.thirdPersonCamera?.orbit?.yaw ?? null)
+      this.body?.update(deltaSeconds)
       this.updateFallRecovery(deltaSeconds)
+      this.writeCharacterAnchor()
+      this.applyExploreCamera()
     } else if (this.modeValue === 'free' && this.inspectionFocused) this.updateFree(deltaSeconds)
+  }
+
+  private currentBodyPose(): { position: Vec3; rotation: readonly [number, number] } {
+    return this.body?.pose ?? { position: [0, 0, 0], rotation: [0, 0] }
+  }
+
+  get locomotion() {
+    return this.body?.locomotion ?? null
+  }
+
+  /** A snapshot of body and actual adapter camera coordinates, in world metres. */
+  get viewState() {
+    const pose = this.currentBodyPose()
+    const feet = this.body?.feet ?? [0, 0, 0] as Vec3
+    const camera = this.context?.renderer.camera.getPosition() ?? pose.position
+    const target: Vec3 = this.thirdPersonCamera
+      ? [feet[0], feet[1] + this.thirdPersonCamera.targetHeight, feet[2]]
+      : copy(pose.position)
+    const viewRotation = this.thirdPersonCamera?.orbit
+      ? [this.thirdPersonCamera.orbit.yaw, this.thirdPersonCamera.orbit.pitch] as const
+      : pose.rotation
+    return {
+      feet: copy(feet), eye: copy(pose.position), camera: copy(camera), target,
+      yaw: viewRotation[0], pitch: viewRotation[1], facingYaw: this.body?.facingYaw ?? 0,
+      grounded: this.body?.grounded ?? false,
+      requestedDistance: this.thirdPersonCamera?.distance ?? 0,
+      actualDistance: Math.hypot(camera[0] - target[0], camera[1] - target[1], camera[2] - target[2]),
+    }
+  }
+
+  private applyExploreCamera(): void {
+    if (!this.context || this.modeValue !== 'explore') return
+    if (this.thirdPersonCamera) { this.applyThirdPersonCamera(); return }
+    const pose = this.currentBodyPose()
+    this.context.renderer.camera.setPosition(pose.position)
+    setViewRotation(this.context.renderer.camera, pose.rotation[0], pose.rotation[1])
+  }
+
+  private applyThirdPersonCamera(): void {
+    if (!this.context || !this.thirdPersonCamera || this.modeValue !== 'explore') return
+    const camera = this.context.renderer.camera
+    const feet = this.body!.feet
+    const pose = this.currentBodyPose()
+    const yaw = this.thirdPersonCamera.orbit?.yaw ?? pose.rotation[0]
+    const pitch = this.thirdPersonCamera.orbit?.pitch ?? pose.rotation[1]
+    const target: Vec3 = [feet[0], feet[1] + this.thirdPersonCamera.targetHeight, feet[2]]
+    const forward = forwardFromRotation(yaw, pitch)
+    const right: Vec3 = [Math.cos(yaw), 0, -Math.sin(yaw)]
+    const offset: Vec3 = [
+      -forward[0] * this.thirdPersonCamera.distance + right[0] * this.thirdPersonCamera.shoulderOffset,
+      -forward[1] * this.thirdPersonCamera.distance,
+      -forward[2] * this.thirdPersonCamera.distance + right[2] * this.thirdPersonCamera.shoulderOffset,
+    ]
+    const fraction = this.thirdPersonCamera.collision
+      ? cameraArmFraction(target, offset, this.context.compiled.colliders, this.characterAnchor?.entityId)
+      : 1
+    camera.setPosition([target[0] + offset[0] * fraction, target[1] + offset[1] * fraction, target[2] + offset[2] * fraction])
+    setViewRotation(camera, yaw, pitch)
+  }
+
+  private writeCharacterAnchor(): void {
+    if (!this.context || !this.characterAnchor) return
+    const pose = this.currentBodyPose()
+    const position = pose.position
+    const yaw = this.thirdPersonCamera?.orbit?.yaw ?? pose.rotation[0]
+    const eyeHeight = this.body?.eyeHeight ?? 1.65
+    const [rightOffset, upOffset, forwardOffset] = this.characterAnchor.offset
+    const rightX = Math.cos(yaw)
+    const rightZ = -Math.sin(yaw)
+    const forwardX = -Math.sin(yaw)
+    const forwardZ = -Math.cos(yaw)
+    const bodyPosition: Vec3 = [
+      position[0] + rightX * rightOffset + forwardX * forwardOffset,
+      position[1] - eyeHeight + upOffset,
+      position[2] + rightZ * rightOffset + forwardZ * forwardOffset,
+    ]
+    const facing = this.characterAnchor.facing === 'movement' ? this.body?.facingYaw ?? yaw : yaw
+    const bodyYaw = (this.characterAnchor.followYaw ? facing : 0) + this.characterAnchor.yawOffset
+    this.context.transforms.set(this.characterAnchor.entityId, {
+      position: bodyPosition,
+      rotation: [0, bodyYaw, 0],
+      ...(this.characterAnchor.scale ? { scale: copy(this.characterAnchor.scale) } : {}),
+    }, {
+      source: PlayerCameraController.characterAnchorSource,
+      priority: 1_000,
+      mode: 'override',
+      space: 'world',
+    })
   }
 
   private setColliders(colliders: PluginRuntimeContext['compiled']['colliders']): void {
     this.collisions?.setColliders(colliders)
-    this.firstPerson?.setColliders(colliders)
+    this.body?.setColliders(colliders)
   }
 
   private restoreSavedProjection(): void {
@@ -312,13 +640,13 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     const forward = forwardFromRotation(this.orbitYaw, this.orbitPitch)
     const position: Vec3 = [this.target[0] - forward[0] * this.orbitDistance, this.target[1] - forward[1] * this.orbitDistance, this.target[2] - forward[2] * this.orbitDistance]
     this.context.renderer.camera.setPosition(position)
-    this.context.renderer.camera.setRotation(this.orbitYaw, this.orbitPitch)
+    setViewRotation(this.context.renderer.camera, this.orbitYaw, this.orbitPitch)
   }
 
   private rotateFree(deltaX: number, deltaY: number): void {
     if (!this.context) return
     const rotation = this.context.renderer.camera.getRotation()
-    this.context.renderer.camera.setRotation(rotation[0] - deltaX * .004, clamp(rotation[1] - deltaY * .004, -Math.PI / 2 + .02, Math.PI / 2 - .02))
+    setViewRotation(this.context.renderer.camera, rotation[0] - deltaX * .004, clamp(rotation[1] - deltaY * .004, -Math.PI / 2 + .02, Math.PI / 2 - .02))
   }
 
   private updateFree(deltaSeconds: number): void {
@@ -478,9 +806,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
   private updateFallRecovery(deltaSeconds: number): void {
     if (!this.context || !this.collisions || this.recoveryOptions === false || this.recoveryDisabled) return
     const options = this.recoveryOptions
-    const camera = this.context.renderer.camera
-    const position = camera.getPosition()
-    const rotation = camera.getRotation()
+    const { position, rotation } = this.currentBodyPose()
     const supported = this.resolveSupportedPose(position, rotation)
     if (supported && Math.abs(supported.position[1] - position[1]) <= Math.max(.12, options.supportTolerance ?? .18)) {
       this.groundedSeconds += deltaSeconds

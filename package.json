@@ -1,6 +1,6 @@
 {
   "name": "@blcklab/anyo-player",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Production-ready browser player for Anyo worlds with Sekai64 rendering, lifecycle, input, recovery, navigation, XR, and framework adapters.",
   "keywords": [
     "anyo",
@@ -89,9 +89,9 @@
     }
   },
   "devDependencies": {
-    "@blcklab/anyo": "0.10.0-rc.1",
-    "@blcklab/anyo-web-surface-texture": "1.0.1-rc.6",
-    "@blcklab/sekai64": "0.8.0-rc.33",
+    "@blcklab/anyo": "0.10.0-rc.3",
+    "@blcklab/anyo-web-surface-texture": "1.0.1-rc.19",
+    "@blcklab/sekai64": "0.8.0-rc.34",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "jsdom": "^26.0.0",

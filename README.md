@@ -302,3 +302,46 @@ Maintainer-only release notes, evidence procedures, historical milestone documen
 ## License
 
 MIT License. Copyright (c) 2026 **Avelurs Tinio**.
+
+## Rebuilt third-person foundation (0.5.1-dev.5)
+
+PlayerBody owns movement; the camera is a derived view. To control an ordinary entity:
+
+```ts
+await player.setCharacterAnchor({ character: 'avatar', facing: 'movement', yawOffset: Math.PI })
+player.setThirdPersonCamera({ distance: 2.4, targetHeight: 1.05, collision: true })
+console.log(player.viewState) // eye, feet, camera, target, yaw, pitch, facing, distances
+```
+
+Yaw offset depends on the model's authored forward direction. Avatar fitting belongs to the host. For skinned VRM/GLB, use the accompanying Sekai64 0.8.0-rc.34-dev.1 fix; rc.33 applies the model transform twice during CPU skinning. The loader archive supplies both built packages.
+
+Set `setThirdPersonCamera(false)` to restore the body eye view. Configure or release the character anchor separately if you want the avatar out of the first-person view. Camera collision is conservative AABB-based. This development revision does not select locomotion animation clips.
+
+
+### MMORPG mouse orbit (0.5.1)
+
+Enable drag orbit explicitly so existing pointer-lock integrations remain backward compatible:
+
+```ts
+player.setThirdPersonCamera({
+  distance: 4,
+  targetHeight: 1.35,
+  collision: true,
+  orbit: {
+    button: 2,          // right mouse
+    minDistance: 1.5,
+    maxDistance: 10,
+    minPitch: -1.15,
+    maxPitch: 1.1,
+  },
+})
+```
+
+Hold the configured mouse button and drag to orbit around the Player body. Use the mouse wheel to zoom. WASD stays relative to the orbit camera heading, while `facing: 'movement'` characters remain visually independent from the camera and `facing: 'camera'` characters continue to support directional locomotion sets.
+
+Desktop orbit input is bound directly to Player's camera controller so Player-specific RMB-drag and wheel-zoom hooks remain reachable even though Anyo's `world.exploration` facade intentionally exposes only the stable base movement/look contract.
+
+
+### Locomotion telemetry
+
+`player.locomotion` is a read-only snapshot for animation and host integrations. It reports collision-resolved horizontal speed/velocity, vertical velocity, grounded state, run intent, configured walk/run speeds, and a reset serial. Consumers should drive animation from `horizontalSpeed`, not raw keyboard intent, so collisions and blocked movement remain visually correct.

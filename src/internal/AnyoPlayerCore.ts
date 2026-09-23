@@ -26,6 +26,8 @@ import type {
   AnyoPlayerCameraMode,
   AnyoPlayerCameraModeOptions,
   AnyoPlayerCameraFrameOptions,
+  AnyoPlayerCharacterAnchorOptions,
+  AnyoPlayerThirdPersonCameraOptions,
   AnyoPlayerTeleportOptions,
   AnyoPlayerFallRecoveryStatus,
   AnyoPlayerTelemetryCategory,
@@ -1113,6 +1115,18 @@ export class AnyoPlayerCore implements AnyoPlayer {
     return this.activeRuntime?.camera?.mode ?? 'explore'
   }
 
+  get characterAnchorEntity(): string | null {
+    return this.activeRuntime?.camera?.characterAnchorEntity ?? null
+  }
+
+  get viewState() { return this.activeRuntime?.camera?.viewState ?? null }
+
+  get locomotion() { return this.activeRuntime?.camera?.locomotion ?? null }
+
+  get thirdPersonCameraEnabled(): boolean {
+    return this.activeRuntime?.camera?.thirdPersonCameraEnabled ?? false
+  }
+
   get fallRecovery(): AnyoPlayerFallRecoveryStatus {
     return structuredClone(this.fallRecoveryValue)
   }
@@ -1602,6 +1616,31 @@ export class AnyoPlayerCore implements AnyoPlayer {
     runtime.camera.setMode(mode, options)
   }
 
+  async setCharacterAnchor(options: false | AnyoPlayerCharacterAnchorOptions): Promise<void> {
+    this.assertNotDisposed()
+    const runtime = this.activeRuntime
+    if (!runtime || !['ready', 'entering', 'running', 'paused'].includes(this.state)) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', `Character anchor requires a loaded world, not state "${this.state}".`)
+    }
+    if (!runtime.camera) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'This custom Player runtime does not provide character anchoring.')
+    }
+    runtime.camera.setCharacterAnchor(options)
+    await runtime.world.flushRuntimeTransforms()
+  }
+
+  setThirdPersonCamera(options: false | AnyoPlayerThirdPersonCameraOptions): void {
+    this.assertNotDisposed()
+    const runtime = this.activeRuntime
+    if (!runtime || !['ready', 'entering', 'running', 'paused'].includes(this.state)) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', `Third-person camera requires a loaded world, not state "${this.state}".`)
+    }
+    if (!runtime.camera) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'This custom Player runtime does not provide third-person camera controls.')
+    }
+    runtime.camera.setThirdPersonCamera(options)
+  }
+
   frameCamera(options: AnyoPlayerCameraFrameOptions = {}): void {
     this.assertNotDisposed()
     if (!this.activeRuntime) throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'Camera framing requires a loaded world.')
@@ -1619,9 +1658,10 @@ export class AnyoPlayerCore implements AnyoPlayer {
       if (options.rotation) runtime.renderer.camera.setRotation(options.rotation[0], options.rotation[1])
       runtime.world.exploration.clearInput()
     }
-    const rotation = runtime.renderer.camera.getRotation()
+    const view = runtime.camera?.viewState
+    const rotation = view ? [view.yaw, view.pitch] : runtime.renderer.camera.getRotation()
     this.events.emit('teleported', {
-      position: [...runtime.renderer.camera.getPosition()] as [number, number, number],
+      position: [...(view?.eye ?? runtime.renderer.camera.getPosition())] as [number, number, number],
       rotation: [rotation[0], rotation[1]],
       resetMotion: options.resetMotion !== false,
     })
@@ -1634,9 +1674,11 @@ export class AnyoPlayerCore implements AnyoPlayer {
     if (!runtime || !document) throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'Reset to spawn requires a loaded world.')
     const exploration = document.exploration
     const position = exploration?.spawn?.position
-      ?? [0, exploration?.eyeHeight ?? exploration?.height ?? 1.7, 0]
+      ?? [0, exploration?.eyeHeight ?? 1.65, 0]
+    const room = exploration?.spawn?.room ? runtime.world.compiled?.roomById.get(exploration.spawn.room) : null
+    const resolved = room ? [(room.bounds.min[0] + room.bounds.max[0]) / 2 + position[0], room.bounds.min[1] + position[1], (room.bounds.min[2] + room.bounds.max[2]) / 2 + position[2]] : position
     if (exploration?.spawn?.room) runtime.world.setCurrentRoom(exploration.spawn.room)
-    this.teleport({ position: [...position] as [number, number, number], rotation: [0, 0], resetMotion: true, clearInput: true })
+    this.teleport({ position: [...resolved] as [number, number, number], rotation: [0, 0], resetMotion: true, clearInput: true })
   }
 
   setQualityPreset(preset: AnyoPlayerQualityPreset): AnyoPlayerPerformanceSnapshot {
@@ -2072,6 +2114,12 @@ export class AnyoPlayerCore implements AnyoPlayer {
       pauseReason: this.pauseReasonValue,
       inputMode: this.inputModeValue ?? this.resumeInputModeAfterPause,
     }, options)
+    const view = this.activeRuntime?.camera?.viewState
+    if (view && this.cameraMode === 'explore') {
+      snapshot.camera.position = [...view.eye]
+      snapshot.camera.yaw = view.yaw
+      snapshot.camera.pitch = view.pitch
+    }
     this.events.emit('sessioncaptured', { snapshot: structuredClone(snapshot) })
     return structuredClone(snapshot)
   }
@@ -2604,7 +2652,7 @@ export class AnyoPlayerCore implements AnyoPlayer {
       runtime = null
       this.activeDocument = structuredClone(resolved.document)
       if (!this.navigationCommitted) this.currentWorldIdValue = this.findNavigationWorldId(source)
-      this.configureInput(resolved.document, this.activeRuntime.world)
+      this.configureInput(resolved.document, this.activeRuntime)
       this.promoteResolvedSource(resolved)
       sourcePromoted = true
       this.xrController.bind(this.activeRuntime.world)
@@ -2694,7 +2742,12 @@ export class AnyoPlayerCore implements AnyoPlayer {
       runtime.operationId = operationId
       this.setPhase('replacing-world')
 
-      await this.awaitRuntimeStep(runtime, runtime.world.load(resolved.document))
+      runtime.camera?.setWorldReplacement(true)
+      try {
+        await this.awaitRuntimeStep(runtime, runtime.world.load(resolved.document))
+      } finally {
+        runtime.camera?.setWorldReplacement(false)
+      }
       this.assertCurrentOperation(operationId)
       this.responsive.resizeNow(true)
 
@@ -2714,7 +2767,7 @@ export class AnyoPlayerCore implements AnyoPlayer {
       if (!this.navigationCommitted) this.currentWorldIdValue = this.findNavigationWorldId(source)
       this.progressValue = { ...runtime.world.getAssetProgress() }
       this.emitProgress()
-      this.configureInput(resolved.document, runtime.world)
+      this.configureInput(resolved.document, runtime)
       this.promoteResolvedSource(resolved)
       sourcePromoted = true
       this.interactionPresentation.bind(runtime.world, runtime.renderer)
@@ -2834,7 +2887,7 @@ export class AnyoPlayerCore implements AnyoPlayer {
         ? 'ready-with-warnings'
         : context.previousReadyStatus
       this.errorValue = null
-      this.configureInput(context.previousDocument, runtime.world)
+      this.configureInput(context.previousDocument, runtime)
       this.interactionPresentation.bind(runtime.world, runtime.renderer)
       this.interactionPresentation.refreshNow()
       this.replacementContext = null
@@ -3028,7 +3081,8 @@ export class AnyoPlayerCore implements AnyoPlayer {
     }
   }
 
-  private configureInput(document: WorldDocument, world: World): void {
+  private configureInput(document: WorldDocument, runtime: PlayerRuntime): void {
+    const world = runtime.world
     const exploration = this.options.exploration ?? {}
     const bindings = this.inputBindingsController.bindings
     if (this.desktopEnabled) {
@@ -3056,7 +3110,11 @@ export class AnyoPlayerCore implements AnyoPlayer {
         invertY: this.viewPreference.invertY,
         preventDefaultKeys: exploration.preventDefaultKeys ?? true,
       })
-      this.desktopInput.bind(world.exploration)
+      // Desktop Player input binds to the Player-owned camera controller when available.
+      // Anyo's world.exploration facade intentionally exposes only the stable
+      // base movement/look contract, so Player-specific orbit capabilities
+      // (RMB drag, free-pointer preference, wheel zoom) must not be hidden behind it.
+      this.desktopInput.bind(runtime.camera ?? world.exploration)
     } else {
       world.exploration.setInputEnabled(false)
     }
@@ -3422,9 +3480,10 @@ export class AnyoPlayerCore implements AnyoPlayer {
     if (shouldRun && this.activeRuntime) {
       this.interactionPresentation.bind(this.activeRuntime.world, this.activeRuntime.renderer)
       this.interactionPresentation.start()
+      const freePointerOrbit = this.inputModeValue === 'desktop' && this.activeRuntime.camera?.prefersPointerLock() === false
       this.reticleValue = {
-        visible: this.interactionPresentation.running,
-        active: this.interactionPresentation.running && this.interactionTargetValue.available,
+        visible: this.interactionPresentation.running && !freePointerOrbit,
+        active: this.interactionPresentation.running && !freePointerOrbit && this.interactionTargetValue.available,
       }
       this.ui.setReticle(this.reticleValue)
       return
@@ -3817,6 +3876,7 @@ export class AnyoPlayerCore implements AnyoPlayer {
         throw playerError
       }
 
+      runtime.camera?.teleport({ position: snapshot.camera.position, rotation: [snapshot.camera.yaw, snapshot.camera.pitch] })
       const restorePauseState = options.restorePauseState ?? true
       if (restorePauseState) {
         if (snapshot.player.paused) {
