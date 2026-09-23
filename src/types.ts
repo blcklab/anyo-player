@@ -1107,6 +1107,85 @@ export interface AnyoPlayerFallRecoveryStatus {
 }
 export interface AnyoPlayerFallRecoveryChange { previous: AnyoPlayerFallRecoveryStatus; recovery: AnyoPlayerFallRecoveryStatus }
 
+export interface AnyoPlayerCharacterAnchorOptions {
+  /** Entity/authoring id to bind to the Player body. Falls back to world exploration.character. */
+  character?: string
+  /** Player-local offset [right, up, forward] from the body/feet position. */
+  offset?: AnyoPlayerVec3
+  /** Rotate the entity with the first-person yaw. Defaults to true. */
+  followYaw?: boolean
+  /** Use camera yaw (default) or the last actual movement direction. */
+  facing?: 'camera' | 'movement'
+  /** Additional yaw in radians applied after the Player yaw. */
+  yawOffset?: number
+  /** Optional world scale owned by the same runtime transform as the character anchor. */
+  scale?: number | AnyoPlayerVec3
+}
+
+export interface AnyoPlayerThirdPersonOrbitOptions {
+  /** Mouse button used to orbit: 0 left, 1 middle, 2 right. Defaults to 2. */
+  button?: 0 | 1 | 2
+  /** Multiplier applied to the configured pointer look sensitivity. Defaults to 1. */
+  sensitivity?: number
+  /** Lowest vertical orbit angle in radians. Defaults to -1.2. */
+  minPitch?: number
+  /** Highest vertical orbit angle in radians. Defaults to 1.2. */
+  maxPitch?: number
+  /** Closest wheel-zoom distance in metres. Defaults to 1.25. */
+  minDistance?: number
+  /** Furthest wheel-zoom distance in metres. Defaults to 12. */
+  maxDistance?: number
+  /** Exponential wheel zoom response. Defaults to 0.0015. */
+  zoomSensitivity?: number
+  /** Reverse vertical mouse orbit. Defaults to false. */
+  invertY?: boolean
+}
+
+/** Follow view derived from the independent Player body. */
+export interface AnyoPlayerThirdPersonCameraOptions {
+  /** Distance behind the body target. Defaults to 4 metres. */
+  distance?: number
+  /** Height above the body/feet used as the camera target. Defaults to 1.35 metres. */
+  targetHeight?: number
+  /** Horizontal camera offset in player-right coordinates. Defaults to 0. */
+  shoulderOffset?: number
+  /** Shorten the camera arm against enabled world colliders. Defaults to true. */
+  collision?: boolean
+  /** Enable MMORPG-style drag orbit and wheel zoom. Existing pointer-lock behavior is preserved when omitted/false. */
+  orbit?: boolean | AnyoPlayerThirdPersonOrbitOptions
+}
+
+export interface AnyoPlayerLocomotionState {
+  /** Collision-resolved horizontal velocity in world metres per second. */
+  horizontalVelocity: AnyoPlayerVec3
+  /** Collision-resolved planar speed in world metres per second. */
+  horizontalSpeed: number
+  /** Current controller vertical velocity in world metres per second. */
+  verticalVelocity: number
+  grounded: boolean
+  /** Whether the run input is currently requested. Movement remains collision-authoritative. */
+  runIntent: boolean
+  /** Effective configured walk speed for the active world. */
+  walkSpeed: number
+  /** Effective configured run speed for the active world. */
+  runSpeed: number
+  /** Monotonic marker incremented by explicit body resets/teleports. */
+  resetSerial: number
+}
+
+export interface AnyoPlayerViewState {
+  feet: AnyoPlayerVec3
+  eye: AnyoPlayerVec3
+  camera: AnyoPlayerVec3
+  target: AnyoPlayerVec3
+  yaw: number
+  pitch: number
+  facingYaw: number
+  grounded: boolean
+  requestedDistance: number
+  actualDistance: number
+}
+
 export interface AnyoPlayerExplorationOptions {
   desktop?: boolean
   touch?: boolean | AnyoPlayerTouchOptions
@@ -1685,6 +1764,10 @@ export interface AnyoPlayer {
   readonly health: AnyoPlayerRuntimeHealth
   readonly caption: AnyoPlayerCaptionState
   readonly cameraMode: AnyoPlayerCameraMode
+  readonly characterAnchorEntity: string | null
+  readonly thirdPersonCameraEnabled: boolean
+  readonly viewState: AnyoPlayerViewState | null
+  readonly locomotion: AnyoPlayerLocomotionState | null
   readonly fallRecovery: AnyoPlayerFallRecoveryStatus
   readonly diagnostics: readonly AnyoPlayerDiagnosticRecord[]
   readonly telemetry: readonly AnyoPlayerTelemetryEvent[]
@@ -1712,6 +1795,8 @@ export interface AnyoPlayer {
   retry(): Promise<void>
   enter(): void
   setCameraMode(mode: AnyoPlayerCameraMode, options?: AnyoPlayerCameraModeOptions): void
+  setCharacterAnchor(options: false | AnyoPlayerCharacterAnchorOptions): Promise<void>
+  setThirdPersonCamera(options: false | AnyoPlayerThirdPersonCameraOptions): void
   frameCamera(options?: AnyoPlayerCameraFrameOptions): void
   teleport(options: AnyoPlayerTeleportOptions): void
   pause(): void

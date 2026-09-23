@@ -78,6 +78,7 @@ export type {
   AnyoPlayerEventMap,
   AnyoPlayerExitedEvent,
   AnyoPlayerExitReason,
+  AnyoPlayerLocomotionState,
   AnyoPlayerExplorationOptions,
   AnyoPlayerFullscreenChange,
   AnyoPlayerFullscreenOptions,

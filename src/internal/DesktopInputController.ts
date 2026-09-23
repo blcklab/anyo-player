@@ -9,6 +9,12 @@ export interface ExplorationInputTarget {
   setMoveAxes(right: number, forward: number): void
   setRun(running: boolean): void
   addLookDelta(deltaX: number, deltaY: number): void
+  prefersPointerLock?(): boolean
+  beginPointerLook?(button: number): boolean
+  endPointerLook?(button: number): void
+  acceptsPointerLook?(): boolean
+  usesPointerLookButton?(button: number): boolean
+  addZoomDelta?(deltaY: number): boolean
   requestJump?(): void
   clearInput(): void
   releasePointerLock(): void
@@ -120,7 +126,7 @@ export class DesktopInputController {
 
   activate(): boolean {
     if (this.disposed || !this.target) return false
-    if (this.active) return this.configuration.pointerLock
+    if (this.active) return this.shouldUsePointerLock()
 
     this.active = true
     this.keys.clear()
@@ -128,8 +134,9 @@ export class DesktopInputController {
     this.target.setInputEnabled(true)
     this.canvas.focus?.({ preventScroll: true })
 
-    if (this.configuration.pointerLock) this.requestPointerLock()
-    return this.configuration.pointerLock
+    const usePointerLock = this.shouldUsePointerLock()
+    if (usePointerLock) this.requestPointerLock()
+    return usePointerLock
   }
 
   deactivate(releasePointerLock = true): void {
@@ -157,6 +164,10 @@ export class DesktopInputController {
     this.canvas.addEventListener('keyup', this.handleKeyUp)
     this.canvas.addEventListener('blur', this.handleCanvasBlur)
     this.canvas.addEventListener('mousemove', this.handleCanvasMouseMove)
+    this.canvas.addEventListener('mousedown', this.handleCanvasMouseDown)
+    this.document?.addEventListener('mouseup', this.handleDocumentMouseUp)
+    this.canvas.addEventListener('contextmenu', this.handleContextMenu)
+    this.canvas.addEventListener('wheel', this.handleWheel, { passive: false })
     this.document?.addEventListener('mousemove', this.handleDocumentMouseMove)
     this.document?.addEventListener('pointerlockchange', this.handlePointerLockChange)
     this.document?.addEventListener('pointerlockerror', this.handlePointerLockError)
@@ -169,6 +180,10 @@ export class DesktopInputController {
     this.canvas.removeEventListener('keyup', this.handleKeyUp)
     this.canvas.removeEventListener('blur', this.handleCanvasBlur)
     this.canvas.removeEventListener('mousemove', this.handleCanvasMouseMove)
+    this.canvas.removeEventListener('mousedown', this.handleCanvasMouseDown)
+    this.document?.removeEventListener('mouseup', this.handleDocumentMouseUp)
+    this.canvas.removeEventListener('contextmenu', this.handleContextMenu)
+    this.canvas.removeEventListener('wheel', this.handleWheel)
     this.document?.removeEventListener('mousemove', this.handleDocumentMouseMove)
     this.document?.removeEventListener('pointerlockchange', this.handlePointerLockChange)
     this.document?.removeEventListener('pointerlockerror', this.handlePointerLockError)
@@ -176,7 +191,11 @@ export class DesktopInputController {
   }
 
   private readonly handleCanvasClick = (event: MouseEvent): void => {
-    if (this.disposed || this.active || !this.target) return
+    if (this.disposed || !this.target) return
+    if (this.active) {
+      if (this.shouldUsePointerLock() && !this.pointerLockValue && !this.pointerLockPending) this.requestPointerLock()
+      return
+    }
     event.preventDefault()
     event.stopPropagation()
     event.stopImmediatePropagation()
@@ -246,14 +265,48 @@ export class DesktopInputController {
     if (this.active) this.callbacks.onExitRequest('window-blur')
   }
 
+  private readonly handleCanvasMouseDown = (event: MouseEvent): void => {
+    if (!this.active || !this.target?.beginPointerLook?.(event.button)) return
+    event.preventDefault()
+  }
+
+  private readonly handleDocumentMouseUp = (event: MouseEvent): void => {
+    this.target?.endPointerLook?.(event.button)
+  }
+
+  private readonly handleContextMenu = (event: MouseEvent): void => {
+    if (this.active && this.target?.usesPointerLookButton?.(2)) event.preventDefault()
+  }
+
+  private readonly handleWheel = (event: WheelEvent): void => {
+    const deltaY = this.normalizeWheelDelta(event)
+    if (!this.active || deltaY === 0 || !this.target?.addZoomDelta?.(deltaY)) return
+    event.preventDefault()
+  }
+
   private readonly handleCanvasMouseMove = (event: MouseEvent): void => {
-    if (!this.active || this.configuration.pointerLock) return
+    if (!this.active || this.shouldUsePointerLock() || this.target?.acceptsPointerLook?.() === false) return
     this.addLook(event.movementX, event.movementY)
   }
 
   private readonly handleDocumentMouseMove = (event: MouseEvent): void => {
-    if (!this.active || !this.configuration.pointerLock || !this.pointerLockValue) return
-    this.addLook(event.movementX, event.movementY)
+    if (!this.active || this.target?.acceptsPointerLook?.() === false) return
+    if (this.shouldUsePointerLock()) {
+      if (!this.pointerLockValue) return
+      this.addLook(event.movementX, event.movementY)
+      return
+    }
+    if (event.target !== this.canvas) this.addLook(event.movementX, event.movementY)
+  }
+
+  private normalizeWheelDelta(event: Pick<WheelEvent, 'deltaY' | 'deltaMode'>): number {
+    if (!Number.isFinite(event.deltaY) || event.deltaY === 0) return 0
+    const modeScale = event.deltaMode === 1
+      ? 40
+      : event.deltaMode === 2
+        ? Math.max(this.canvas.clientHeight || 0, 480)
+        : 1
+    return Math.max(-240, Math.min(240, event.deltaY * modeScale))
   }
 
   private readonly handlePointerLockChange = (): void => {
@@ -262,7 +315,7 @@ export class DesktopInputController {
     this.pointerLockValue = locked
     if (locked) this.pointerLockPending = false
     if (changed) this.callbacks.onPointerLockChange(locked)
-    if (!locked && changed && this.active) this.callbacks.onExitRequest('pointer-lock-exit')
+    if (!locked && changed && this.active && this.shouldUsePointerLock()) this.callbacks.onExitRequest('pointer-lock-exit')
   }
 
   private readonly handlePointerLockError = (event: Event): void => {
@@ -270,6 +323,11 @@ export class DesktopInputController {
     this.pointerLockPending = false
     this.callbacks.onPointerLockError(event)
     if (this.active) this.callbacks.onExitRequest('pointer-lock-error')
+  }
+
+
+  private shouldUsePointerLock(): boolean {
+    return this.configuration.pointerLock && (this.target?.prefersPointerLock?.() ?? true)
   }
 
   private requestPointerLock(): void {

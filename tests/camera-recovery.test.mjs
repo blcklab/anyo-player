@@ -91,7 +91,7 @@ test('teleport resets motion and fall recovery returns to verified support once'
   controller.setInputEnabled(true)
   controller.teleport({ position: [2,1.65,2], rotation: [.3,-.1], resetMotion: true })
   assert.deepEqual(f.position, [2,1.65,2])
-  f.camera.setPosition([2,-20,2])
+  controller.teleport({ position: [2,-20,2], rotation: [.3,-.1], resetMotion: true })
   controller.plugin.update(.016, f.context)
   assert.ok(f.position[1] >= 1.64)
   assert.deepEqual(states, ['recovering','recovered'])

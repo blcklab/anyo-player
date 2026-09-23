@@ -127,6 +127,12 @@ test('Player restores preferences, applies view settings, and exports runtime he
       mode: 'explore',
       setFieldOfView(value) { cameraCalls.push(value) },
       setMode() {}, frame() {}, teleport() {},
+      setInputEnabled() {}, setMoveAxes() {}, setRun() {}, addLookDelta() {},
+      clearInput() {}, releasePointerLock() {},
+      prefersPointerLock() { return true },
+      beginPointerLook() { return false }, endPointerLook() {},
+      acceptsPointerLook() { return true }, usesPointerLookButton() { return false },
+      addZoomDelta() { return false }, requestJump() {},
     }
     return runtime
   }

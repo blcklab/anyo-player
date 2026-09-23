@@ -1,4 +1,61 @@
+# 0.5.1
+
+- Fix real browser MMORPG camera input by binding desktop controls to PlayerCameraController instead of Anyo's base world.exploration facade.
+- Preserve the Anyo exploration facade for stable world-level movement/touch/gamepad routing while exposing Player-only RMB orbit, free-pointer preference, and wheel zoom to desktop input.
+- No PlayerBody, collision, animation, Anyo core, or Sekai64 behavior changes.
+
+# 0.5.1-dev.8
+
+- Harden MMORPG third-person orbit input: normalize mouse-wheel delta modes so physical wheels and trackpads zoom consistently.
+- Continue right-drag orbit when the pointer leaves the canvas until the configured mouse button is released.
+- Hide the center interaction reticle while free-pointer third-person orbit is active.
+
+# 0.5.1-dev.7
+
+- Add opt-in MMORPG-style third-person mouse orbit with an independent camera yaw/pitch arm.
+- Add configurable right-drag orbit, pitch limits, wheel zoom distance limits and zoom sensitivity.
+- Keep collision-resolved movement camera-relative by feeding orbit yaw into PlayerBody without making the rendered avatar the authoritative movement body.
+- Preserve legacy pointer-lock third-person behavior when `orbit` is omitted.
+- Keep first-person, inspection camera modes, XR, collisions and locomotion telemetry unchanged.
+
 # Changelog
+
+## 0.5.1-dev.6
+
+- Expose a read-only `locomotion` snapshot with collision-resolved horizontal velocity/speed, vertical velocity, grounded state, run intent, configured walk/run speeds, and a reset serial for teleports/recovery.
+- Compute planar velocity from the bounded simulated interval, so long inactive frames do not under-report movement.
+- Zero locomotion output when input is cleared and preserve Player as the sole owner of movement/collision; animation remains a consumer only.
+
+## 0.5.1-dev.5
+
+- Rebuild exploration around an independent PlayerBody; add movement-facing, jump, camera collision and view-state diagnostics. Correct native camera rotation order, spawn timing, body teleport/session handling and same-world rebuild continuity.
+
+## 0.5.1-dev.4
+
+- Let the character anchor own an optional positive world scale in the same runtime transform as position and rotation.
+- Keep Player format-agnostic: hosts may derive the scale from VRM/GLB bounds, while Player only applies the resolved character transform.
+- Preserve the proven first-person locomotion/collision body and Stage-3 follow camera.
+
+## 0.5.1-dev.3
+
+- Add the Stage 3 `setThirdPersonCamera()` follow-camera probe on top of the proven character anchor.
+- Keep `FirstPersonController` as the sole locomotion/collision source of truth by restoring the body-eye pose before every movement update and applying the follow camera afterward.
+- Keep third-person separate from inspection camera modes; `cameraMode` remains `explore`.
+- Restore the real body-eye pose when disabling third-person so first-person resumes without teleporting.
+
+
+## 0.5.1-dev.2
+
+- Keep the Stage 2 character-anchor runtime unchanged while hardening local development.
+- Remove the package-boundary test's hard-coded package version so normal prerelease/version bumps do not fail unrelated architecture tests.
+- Use `fileURLToPath()` in validation tooling tests so Windows paths do not become invalid `C:\\C:\\...` paths.
+
+## 0.5.1-dev.1
+
+- Add the Stage 2 `setCharacterAnchor()` API without adding third-person camera behavior.
+- Bind an ordinary Anyo entity to the first-person body/feet through the runtime transform store.
+- Support player-local right/up/forward debug offsets and yaw offsets so transform ownership can be proven while the camera remains first-person.
+- Keep Player independent from VRM, Avatar, and Animation packages; the controlled entity remains a normal Anyo entity.
 
 ## 0.5.0
 
