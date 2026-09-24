@@ -363,6 +363,28 @@ player.setThirdPersonCamera({
 Most hosts should use the defaults. Set `smoothing: false` when reproducing the pre-0.5.2 immediate camera response for compatibility testing.
 
 
+### LMB free-look + RMB authoritative orbit (0.5.3)
+
+When third-person `orbit` is enabled, the default desktop MMORPG controls are now:
+
+- **LMB drag** — free-look around the character. Camera yaw/pitch changes, but PlayerBody movement yaw and character facing remain unchanged.
+- **RMB drag** — authoritative orbit. RMB adopts the current camera heading as the movement-facing heading, then camera-relative WASD and character-facing yaw continue to follow RMB orbit.
+- **Mouse wheel** — zoom, using the 0.5.2 smoothed camera arm.
+
+```ts
+player.setThirdPersonCamera({
+  distance: 4,
+  collision: true,
+  orbit: {
+    button: 2,           // RMB: authoritative orbit
+    freeLookButton: 0,   // LMB: visual free-look (default)
+  },
+})
+```
+
+Set `freeLookButton: false` to disable free-look. Existing configurations that use `button: 0` for authoritative LMB orbit remain compatible; in that case free-look defaults off unless another button is explicitly selected.
+
+
 ### Locomotion telemetry
 
 `player.locomotion` is a read-only snapshot for animation and host integrations. It reports collision-resolved horizontal speed/velocity, vertical velocity, grounded state, run intent, configured walk/run speeds, and a reset serial. Consumers should drive animation from `horizontalSpeed`, not raw keyboard intent, so collisions and blocked movement remain visually correct.

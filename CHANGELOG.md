@@ -1,3 +1,12 @@
+# 0.5.3
+
+- Added default LMB free-look for MMORPG third-person orbit while preserving RMB as the authoritative movement-facing orbit control.
+- Free-look now changes visual camera yaw/pitch without changing PlayerBody movement yaw or the anchored character's authoritative facing yaw.
+- RMB claims the current free-look heading as the authoritative movement basis, then keeps camera and movement yaw coupled while dragging.
+- Added `orbit.freeLookButton` (`0 | 1 | 2 | false`), defaulting to LMB unless LMB is already the configured authoritative orbit button.
+- Preserved 0.5.2 frame-rate-independent follow/zoom smoothing, immediate obstruction entry, slow obstruction recovery, Web Surface wheel ownership, and legacy custom orbit-button behavior.
+- Added focused regressions for default LMB/RMB ownership, movement independence during free-look, RMB takeover, disabling free-look, and conflicting button validation.
+
 # 0.5.2
 
 - Added frame-rate-independent third-person target and wheel-zoom damping.

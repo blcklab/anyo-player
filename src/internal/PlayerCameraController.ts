@@ -126,6 +126,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     }
     orbit: {
       button: 0 | 1 | 2
+      freeLookButton: 0 | 1 | 2 | false
       sensitivity: number
       minPitch: number
       maxPitch: number
@@ -135,6 +136,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
       invertY: boolean
       yaw: number
       pitch: number
+      movementYaw: number
     } | null
   } | null = null
   private thirdPersonCameraState: {
@@ -142,7 +144,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     zoomDistance: number
     armFraction: number
   } | null = null
-  private thirdPersonOrbitDragging = false
+  private readonly thirdPersonPointerButtons = new Set<number>()
   private replacingWorld = false
   private suspendedWorld: PluginRuntimeContext['world'] | null = null
   private suspendedPose: { position: Vec3; rotation: readonly [number, number] } | null = null
@@ -241,9 +243,9 @@ export class PlayerCameraController implements ExplorationRuntimeController {
 
     if (options === false) {
       const previousOrbit = this.thirdPersonCamera?.orbit
-      if (previousOrbit) this.body?.setLookAngles(previousOrbit.yaw, previousOrbit.pitch)
+      if (previousOrbit) this.body?.setLookAngles(previousOrbit.movementYaw, previousOrbit.pitch)
       this.body?.setMovementYawOverride(null)
-      this.thirdPersonOrbitDragging = false
+      this.thirdPersonPointerButtons.clear()
       this.thirdPersonCamera = null
       this.thirdPersonCameraState = null
       this.applyExploreCamera()
@@ -264,6 +266,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     if (orbit) {
       orbit.yaw = priorOrbit?.yaw ?? pose.rotation[0]
       orbit.pitch = clamp(priorOrbit?.pitch ?? pose.rotation[1], orbit.minPitch, orbit.maxPitch)
+      orbit.movementYaw = priorOrbit?.movementYaw ?? priorOrbit?.yaw ?? pose.rotation[0]
     }
     let distance = options.distance ?? this.thirdPersonCamera?.distance ?? 4
     if (!Number.isFinite(distance) || distance <= 0) throw new TypeError('Third-person camera distance must be a positive finite number.')
@@ -272,8 +275,8 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     const smoothing = this.normalizeThirdPersonSmoothing(options.smoothing)
     this.thirdPersonCamera = { distance, targetHeight, shoulderOffset, collision: options.collision !== false, smoothing, orbit }
     this.thirdPersonCameraState = null
-    this.thirdPersonOrbitDragging = false
-    this.body?.setMovementYawOverride(orbit?.yaw ?? null)
+    this.thirdPersonPointerButtons.clear()
+    this.body?.setMovementYawOverride(orbit?.movementYaw ?? null)
     if (orbit) this.releasePointerLock()
     this.writeCharacterAnchor()
     this.applyThirdPersonCamera(0, true)
@@ -282,21 +285,38 @@ export class PlayerCameraController implements ExplorationRuntimeController {
   prefersPointerLock(): boolean { return !this.thirdPersonCamera?.orbit }
 
   usesPointerLookButton(button: number): boolean {
-    return Boolean(this.thirdPersonCamera?.orbit && this.thirdPersonCamera.orbit.button === button)
+    const orbit = this.thirdPersonCamera?.orbit
+    return Boolean(orbit && (orbit.button === button || orbit.freeLookButton === button))
   }
 
   beginPointerLook(button: number): boolean {
-    if (!this.usesPointerLookButton(button)) return false
-    this.thirdPersonOrbitDragging = true
+    const orbit = this.thirdPersonCamera?.orbit
+    if (!orbit || !this.usesPointerLookButton(button)) return false
+    this.thirdPersonPointerButtons.add(button)
+    if (orbit.button === button) {
+      // RMB-style authoritative orbit claims the camera's current heading as the movement basis.
+      orbit.movementYaw = orbit.yaw
+      this.body?.setMovementYawOverride(orbit.movementYaw)
+      this.writeCharacterAnchor()
+    }
     return true
   }
 
   endPointerLook(button: number): void {
-    if (this.usesPointerLookButton(button)) this.thirdPersonOrbitDragging = false
+    this.thirdPersonPointerButtons.delete(button)
   }
 
   acceptsPointerLook(): boolean {
-    return this.thirdPersonCamera?.orbit ? this.thirdPersonOrbitDragging : true
+    return this.thirdPersonCamera?.orbit ? this.currentThirdPersonPointerLookMode() !== null : true
+  }
+
+  private currentThirdPersonPointerLookMode(): 'orbit' | 'free-look' | null {
+    const orbit = this.thirdPersonCamera?.orbit
+    if (!orbit) return null
+    // Authoritative orbit wins when both configured buttons are held, matching classic MMORPG mouse chords.
+    if (this.thirdPersonPointerButtons.has(orbit.button)) return 'orbit'
+    if (orbit.freeLookButton !== false && this.thirdPersonPointerButtons.has(orbit.freeLookButton)) return 'free-look'
+    return null
   }
 
   addZoomDelta(deltaY: number): boolean {
@@ -311,6 +331,9 @@ export class PlayerCameraController implements ExplorationRuntimeController {
   private normalizeThirdPersonOrbit(options: true | AnyoPlayerThirdPersonOrbitOptions): NonNullable<NonNullable<PlayerCameraController['thirdPersonCamera']>['orbit']> {
     const value = options === true ? {} : options
     const button = value.button ?? 2
+    const freeLookButton = value.freeLookButton === undefined
+      ? (button === 0 ? false : 0)
+      : value.freeLookButton
     const sensitivity = value.sensitivity ?? 1
     const minPitch = value.minPitch ?? -1.2
     const maxPitch = value.maxPitch ?? 1.2
@@ -318,11 +341,13 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     const maxDistance = value.maxDistance ?? 12
     const zoomSensitivity = value.zoomSensitivity ?? .0015
     if (![0, 1, 2].includes(button)) throw new TypeError('Third-person orbit button must be 0, 1, or 2.')
+    if (freeLookButton !== false && ![0, 1, 2].includes(freeLookButton)) throw new TypeError('Third-person free-look button must be 0, 1, 2, or false.')
+    if (freeLookButton !== false && freeLookButton === button) throw new TypeError('Third-person free-look button must differ from the authoritative orbit button.')
     if (!Number.isFinite(sensitivity) || sensitivity <= 0) throw new TypeError('Third-person orbit sensitivity must be a positive finite number.')
     if (!Number.isFinite(minPitch) || !Number.isFinite(maxPitch) || minPitch >= maxPitch) throw new TypeError('Third-person orbit pitch limits must be finite and minPitch must be less than maxPitch.')
     if (!Number.isFinite(minDistance) || !Number.isFinite(maxDistance) || minDistance <= 0 || minDistance >= maxDistance) throw new TypeError('Third-person orbit distance limits must be positive and minDistance must be less than maxDistance.')
     if (!Number.isFinite(zoomSensitivity) || zoomSensitivity <= 0) throw new TypeError('Third-person orbit zoomSensitivity must be a positive finite number.')
-    return { button, sensitivity, minPitch, maxPitch, minDistance, maxDistance, zoomSensitivity, invertY: value.invertY === true, yaw: 0, pitch: 0 }
+    return { button, freeLookButton, sensitivity, minPitch, maxPitch, minDistance, maxDistance, zoomSensitivity, invertY: value.invertY === true, yaw: 0, pitch: 0, movementYaw: 0 }
   }
 
   private normalizeThirdPersonSmoothing(options: boolean | AnyoPlayerThirdPersonSmoothingOptions | undefined): NonNullable<PlayerCameraController['thirdPersonCamera']>['smoothing'] {
@@ -367,7 +392,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     this.body?.clearInput()
     this.pressed.clear()
     this.dragging = false
-    this.thirdPersonOrbitDragging = false
+    this.thirdPersonPointerButtons.clear()
     this.releaseActivePointer()
   }
 
@@ -392,7 +417,10 @@ export class PlayerCameraController implements ExplorationRuntimeController {
         orbit.yaw -= deltaX * sensitivity
         const vertical = orbit.invertY ? -deltaY : deltaY
         orbit.pitch = clamp(orbit.pitch - vertical * sensitivity, orbit.minPitch, orbit.maxPitch)
-        this.body.setMovementYawOverride(orbit.yaw)
+        if (this.currentThirdPersonPointerLookMode() !== 'free-look') {
+          orbit.movementYaw = orbit.yaw
+          this.body.setMovementYawOverride(orbit.movementYaw)
+        }
         this.writeCharacterAnchor()
         this.applyThirdPersonCamera()
       } else this.body?.addLookDelta(deltaX, deltaY)
@@ -555,7 +583,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     this.savedProjection = null
     this.thirdPersonCamera = null
     this.thirdPersonCameraState = null
-    this.thirdPersonOrbitDragging = false
+    this.thirdPersonPointerButtons.clear()
   }
 
   private createBody(): void {
@@ -573,7 +601,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
   private update(deltaSeconds: number): void {
     if (!this.context || !this.enabledValue || this.context.world.xr.state === 'active') return
     if (this.modeValue === 'explore') {
-      this.body?.setMovementYawOverride(this.thirdPersonCamera?.orbit?.yaw ?? null)
+      this.body?.setMovementYawOverride(this.thirdPersonCamera?.orbit?.movementYaw ?? null)
       this.body?.update(deltaSeconds)
       this.updateFallRecovery(deltaSeconds)
       this.writeCharacterAnchor()
@@ -670,7 +698,7 @@ export class PlayerCameraController implements ExplorationRuntimeController {
     if (!this.context || !this.characterAnchor) return
     const pose = this.currentBodyPose()
     const position = pose.position
-    const yaw = this.thirdPersonCamera?.orbit?.yaw ?? pose.rotation[0]
+    const yaw = this.thirdPersonCamera?.orbit?.movementYaw ?? pose.rotation[0]
     const eyeHeight = this.body?.eyeHeight ?? 1.65
     const [rightOffset, upOffset, forwardOffset] = this.characterAnchor.offset
     const rightX = Math.cos(yaw)

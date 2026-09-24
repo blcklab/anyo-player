@@ -1123,8 +1123,13 @@ export interface AnyoPlayerCharacterAnchorOptions {
 }
 
 export interface AnyoPlayerThirdPersonOrbitOptions {
-  /** Mouse button used to orbit: 0 left, 1 middle, 2 right. Defaults to 2. */
+  /** Mouse button used for authoritative MMORPG orbit: 0 left, 1 middle, 2 right. Defaults to 2 (RMB). */
   button?: 0 | 1 | 2
+  /**
+   * Mouse button used for visual free-look without changing the movement/facing yaw.
+   * Defaults to 0 (LMB). Set false to disable. When authoritative orbit itself uses LMB, free-look defaults off.
+   */
+  freeLookButton?: 0 | 1 | 2 | false
   /** Multiplier applied to the configured pointer look sensitivity. Defaults to 1. */
   sensitivity?: number
   /** Lowest vertical orbit angle in radians. Defaults to -1.2. */
