@@ -384,6 +384,50 @@ player.setThirdPersonCamera({
 
 Set `freeLookButton: false` to disable free-look. Existing configurations that use `button: 0` for authoritative LMB orbit remain compatible; in that case free-look defaults off unless another button is explicitly selected.
 
+### Camera polish controls (0.5.4 candidate)
+
+The optional P2/P3 camera layer builds on the 0.5.2 smoothing and 0.5.3 MMORPG mouse ownership without changing PlayerBody locomotion ownership.
+
+```ts
+player.setThirdPersonCamera({
+  distance: 4,
+  collision: true,
+  shoulderSide: 'right',
+  shoulderOffset: 0.45,
+  characterVisibility: {
+    hiddenDistance: 0.5,
+    fadeStartDistance: 1.35,
+  },
+  dynamicFieldOfView: {
+    maxBoost: 5,
+    response: 7,
+  },
+  orbit: {
+    button: 2,
+    freeLookButton: 0,
+    sensitivityX: 1,
+    sensitivityY: 0.8,
+    invertX: false,
+    invertY: false,
+  },
+})
+```
+
+Runtime shoulder switching keeps the configured magnitude and uses the normal third-person smoothing path:
+
+```ts
+player.swapThirdPersonShoulder()
+player.setThirdPersonShoulder('left')
+player.setThirdPersonShoulder('right', 0.55)
+player.setThirdPersonShoulder('center')
+```
+
+`viewState.characterVisibility` is a renderer-neutral `0..1` signal derived from the actual camera distance after collision. Player does not modify VRM/GLB materials; hosts may use this value to fade or hide the local character without coupling Player to Avatar or Sekai64 material internals.
+
+Dynamic FOV is disabled unless `dynamicFieldOfView` is explicitly enabled. By default, normal walking keeps the base FOV unchanged and widening starts above the configured walk speed, reaching `maxBoost` at run speed. Disabling third person or leaving explore mode restores the base perspective FOV.
+
+For compatibility, the legacy `orbit.sensitivity` still drives both axes unless `sensitivityX` or `sensitivityY` is provided.
+
 
 ### Locomotion telemetry
 
