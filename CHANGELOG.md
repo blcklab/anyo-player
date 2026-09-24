@@ -1,3 +1,13 @@
+# 0.5.4
+
+- Added runtime left/right/center shoulder switching with frame-rate-independent shoulder damping and preserved legacy signed `shoulderOffset` behavior.
+- Added independent `orbit.sensitivityX` / `orbit.sensitivityY` plus `invertX`, while keeping the existing scalar `sensitivity` and `invertY` contracts compatible.
+- Added renderer-neutral `viewState.characterVisibility` (`0..1`) based on actual post-collision camera distance; Player still does not manipulate VRM/GLB materials.
+- Added opt-in speed-reactive dynamic perspective FOV. Walking keeps the base FOV, running can widen toward a bounded boost, and leaving/disabling third person restores the base FOV.
+- Expanded `viewState` with effective shoulder offset/side and current perspective FOV for host diagnostics and UI.
+- Preserved 0.5.2 smoothing/collision behavior and 0.5.3 LMB free-look / RMB authoritative orbit ownership.
+- Added focused P2/P3 regressions for sensitivity axes, inversion, shoulder transitions, close-camera visibility, dynamic FOV, restoration, and validation.
+
 # 0.5.3
 
 - Added default LMB free-look for MMORPG third-person orbit while preserving RMB as the authoritative movement-facing orbit control.

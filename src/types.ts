@@ -1132,6 +1132,10 @@ export interface AnyoPlayerThirdPersonOrbitOptions {
   freeLookButton?: 0 | 1 | 2 | false
   /** Multiplier applied to the configured pointer look sensitivity. Defaults to 1. */
   sensitivity?: number
+  /** Horizontal pointer sensitivity multiplier. Overrides `sensitivity` for yaw when provided. */
+  sensitivityX?: number
+  /** Vertical pointer sensitivity multiplier. Overrides `sensitivity` for pitch when provided. */
+  sensitivityY?: number
   /** Lowest vertical orbit angle in radians. Defaults to -1.2. */
   minPitch?: number
   /** Highest vertical orbit angle in radians. Defaults to 1.2. */
@@ -1144,6 +1148,8 @@ export interface AnyoPlayerThirdPersonOrbitOptions {
   zoomSensitivity?: number
   /** Reverse vertical mouse orbit. Defaults to false. */
   invertY?: boolean
+  /** Reverse horizontal mouse orbit. Defaults to false. */
+  invertX?: boolean
 }
 
 /** Frame-rate-independent third-person camera smoothing. */
@@ -1156,6 +1162,28 @@ export interface AnyoPlayerThirdPersonSmoothingOptions {
   zoomResponse?: number
   /** Camera-arm recovery response after an obstruction clears, in 1/seconds. Defaults to 8. Collision entry remains immediate for safety. */
   collisionRecoveryResponse?: number
+  /** Shoulder-switch response in 1/seconds. Defaults to 14. */
+  shoulderResponse?: number
+}
+
+export type AnyoPlayerThirdPersonShoulderSide = 'left' | 'center' | 'right'
+
+/** Renderer-neutral visibility signal for hosts that want to fade the local character near the camera. */
+export interface AnyoPlayerThirdPersonCharacterVisibilityOptions {
+  /** Distance at or below which the visibility signal reaches zero. Defaults to 0.5 metres. */
+  hiddenDistance?: number
+  /** Distance at or above which the visibility signal reaches one. Defaults to 1.35 metres. */
+  fadeStartDistance?: number
+}
+
+/** Optional speed-reactive perspective FOV. Disabled by default for accessibility and motion comfort. */
+export interface AnyoPlayerThirdPersonDynamicFieldOfViewOptions {
+  /** Maximum FOV increase, in degrees, at run speed. Defaults to 5. */
+  maxBoost?: number
+  /** Frame-rate-independent FOV response in 1/seconds. Defaults to 7. */
+  response?: number
+  /** Speed in metres/second at which FOV widening starts. Defaults to the configured walk speed. */
+  startSpeed?: number
 }
 
 /** Follow view derived from the independent Player body. */
@@ -1166,6 +1194,11 @@ export interface AnyoPlayerThirdPersonCameraOptions {
   targetHeight?: number
   /** Horizontal camera offset in player-right coordinates. Defaults to 0. */
   shoulderOffset?: number
+  /**
+   * Optional semantic shoulder side. When supplied without `shoulderOffset`, Player uses a 0.45 metre shoulder magnitude.
+   * Omit for the legacy signed `shoulderOffset` behavior.
+   */
+  shoulderSide?: AnyoPlayerThirdPersonShoulderSide
   /** Shorten the camera arm against enabled world colliders. Defaults to true. */
   collision?: boolean
   /**
@@ -1175,6 +1208,15 @@ export interface AnyoPlayerThirdPersonCameraOptions {
   smoothing?: boolean | AnyoPlayerThirdPersonSmoothingOptions
   /** Enable MMORPG-style drag orbit and wheel zoom. Existing pointer-lock behavior is preserved when omitted/false. */
   orbit?: boolean | AnyoPlayerThirdPersonOrbitOptions
+  /**
+   * Emit a 0..1 renderer-neutral character visibility signal from `viewState.characterVisibility`.
+   * Enabled with production defaults when omitted/true. Set false to force the signal to 1.
+   */
+  characterVisibility?: boolean | AnyoPlayerThirdPersonCharacterVisibilityOptions
+  /**
+   * Optional speed-reactive perspective FOV. Disabled by default so motion-sensitive users keep a stable FOV unless explicitly enabled.
+   */
+  dynamicFieldOfView?: boolean | AnyoPlayerThirdPersonDynamicFieldOfViewOptions
 }
 
 export interface AnyoPlayerLocomotionState {
@@ -1206,6 +1248,13 @@ export interface AnyoPlayerViewState {
   grounded: boolean
   requestedDistance: number
   actualDistance: number
+  /** Effective signed shoulder offset in player-right metres. */
+  shoulderOffset: number
+  shoulderSide: AnyoPlayerThirdPersonShoulderSide
+  /** Renderer-neutral local-character visibility signal in the inclusive range 0..1. */
+  characterVisibility: number
+  /** Current perspective FOV in degrees, or null when the active camera is orthographic/unavailable. */
+  fieldOfView: number | null
 }
 
 export interface AnyoPlayerExplorationOptions {
@@ -1819,6 +1868,8 @@ export interface AnyoPlayer {
   setCameraMode(mode: AnyoPlayerCameraMode, options?: AnyoPlayerCameraModeOptions): void
   setCharacterAnchor(options: false | AnyoPlayerCharacterAnchorOptions): Promise<void>
   setThirdPersonCamera(options: false | AnyoPlayerThirdPersonCameraOptions): void
+  setThirdPersonShoulder(side: AnyoPlayerThirdPersonShoulderSide, offset?: number): void
+  swapThirdPersonShoulder(): AnyoPlayerThirdPersonShoulderSide
   frameCamera(options?: AnyoPlayerCameraFrameOptions): void
   teleport(options: AnyoPlayerTeleportOptions): void
   pause(): void

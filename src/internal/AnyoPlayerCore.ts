@@ -28,6 +28,7 @@ import type {
   AnyoPlayerCameraFrameOptions,
   AnyoPlayerCharacterAnchorOptions,
   AnyoPlayerThirdPersonCameraOptions,
+  AnyoPlayerThirdPersonShoulderSide,
   AnyoPlayerTeleportOptions,
   AnyoPlayerFallRecoveryStatus,
   AnyoPlayerTelemetryCategory,
@@ -1639,6 +1640,30 @@ export class AnyoPlayerCore implements AnyoPlayer {
       throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'This custom Player runtime does not provide third-person camera controls.')
     }
     runtime.camera.setThirdPersonCamera(options)
+  }
+
+  setThirdPersonShoulder(side: AnyoPlayerThirdPersonShoulderSide, offset?: number): void {
+    this.assertNotDisposed()
+    const runtime = this.activeRuntime
+    if (!runtime || !['ready', 'entering', 'running', 'paused'].includes(this.state)) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', `Third-person shoulder controls require a loaded world, not state "${this.state}".`)
+    }
+    if (!runtime.camera) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'This custom Player runtime does not provide third-person camera controls.')
+    }
+    runtime.camera.setThirdPersonShoulder(side, offset)
+  }
+
+  swapThirdPersonShoulder(): AnyoPlayerThirdPersonShoulderSide {
+    this.assertNotDisposed()
+    const runtime = this.activeRuntime
+    if (!runtime || !['ready', 'entering', 'running', 'paused'].includes(this.state)) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', `Third-person shoulder controls require a loaded world, not state "${this.state}".`)
+    }
+    if (!runtime.camera) {
+      throw new AnyoPlayerError('PLAYER_INVALID_STATE', 'This custom Player runtime does not provide third-person camera controls.')
+    }
+    return runtime.camera.swapThirdPersonShoulder()
   }
 
   frameCamera(options: AnyoPlayerCameraFrameOptions = {}): void {
