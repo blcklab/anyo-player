@@ -1141,6 +1141,18 @@ export interface AnyoPlayerThirdPersonOrbitOptions {
   invertY?: boolean
 }
 
+/** Frame-rate-independent third-person camera smoothing. */
+export interface AnyoPlayerThirdPersonSmoothingOptions {
+  /** Horizontal follow response in 1/seconds. Higher values follow the body more tightly. Defaults to 18. */
+  horizontalTargetResponse?: number
+  /** Vertical follow response in 1/seconds. Lower values soften stairs and small grounding corrections. Defaults to 10. */
+  verticalTargetResponse?: number
+  /** Wheel-zoom response in 1/seconds. Defaults to 16. */
+  zoomResponse?: number
+  /** Camera-arm recovery response after an obstruction clears, in 1/seconds. Defaults to 8. Collision entry remains immediate for safety. */
+  collisionRecoveryResponse?: number
+}
+
 /** Follow view derived from the independent Player body. */
 export interface AnyoPlayerThirdPersonCameraOptions {
   /** Distance behind the body target. Defaults to 4 metres. */
@@ -1151,6 +1163,11 @@ export interface AnyoPlayerThirdPersonCameraOptions {
   shoulderOffset?: number
   /** Shorten the camera arm against enabled world colliders. Defaults to true. */
   collision?: boolean
+  /**
+   * Smooth the follow target, zoom arm, and obstruction recovery using frame-rate-independent damping.
+   * Enabled with production defaults when omitted/true. Set false for the legacy immediate camera response.
+   */
+  smoothing?: boolean | AnyoPlayerThirdPersonSmoothingOptions
   /** Enable MMORPG-style drag orbit and wheel zoom. Existing pointer-lock behavior is preserved when omitted/false. */
   orbit?: boolean | AnyoPlayerThirdPersonOrbitOptions
 }

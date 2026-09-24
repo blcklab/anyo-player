@@ -1,3 +1,11 @@
+# 0.5.2
+
+- Added frame-rate-independent third-person target and wheel-zoom damping.
+- Camera obstruction entry now clamps immediately for collision safety while recovery eases outward after the obstruction clears.
+- Separated requested zoom intent from the smoothed physical camera arm internally without changing PlayerBody movement ownership.
+- Added `thirdPersonCamera.smoothing` controls with production defaults and `smoothing: false` for the legacy immediate response.
+- Added regression coverage for follow smoothing, zoom smoothing, obstruction entry/recovery, and legacy compatibility.
+
 # 0.5.1
 
 - Fix real browser MMORPG camera input by binding desktop controls to PlayerCameraController instead of Anyo's base world.exploration facade.

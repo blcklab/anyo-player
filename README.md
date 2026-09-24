@@ -303,7 +303,7 @@ Maintainer-only release notes, evidence procedures, historical milestone documen
 
 MIT License. Copyright (c) 2026 **Avelurs Tinio**.
 
-## Rebuilt third-person foundation (0.5.1-dev.5)
+## Third-person foundation
 
 PlayerBody owns movement; the camera is a derived view. To control an ordinary entity:
 
@@ -313,7 +313,7 @@ player.setThirdPersonCamera({ distance: 2.4, targetHeight: 1.05, collision: true
 console.log(player.viewState) // eye, feet, camera, target, yaw, pitch, facing, distances
 ```
 
-Yaw offset depends on the model's authored forward direction. Avatar fitting belongs to the host. For skinned VRM/GLB, use the accompanying Sekai64 0.8.0-rc.34-dev.1 fix; rc.33 applies the model transform twice during CPU skinning. The loader archive supplies both built packages.
+Yaw offset depends on the model's authored forward direction. Avatar fitting belongs to the host. For skinned VRM/GLB, use the current validated Sekai64 0.8.0-rc.34 line.
 
 Set `setThirdPersonCamera(false)` to restore the body eye view. Configure or release the character anchor separately if you want the avatar out of the first-person view. Camera collision is conservative AABB-based. This development revision does not select locomotion animation clips.
 
@@ -340,6 +340,27 @@ player.setThirdPersonCamera({
 Hold the configured mouse button and drag to orbit around the Player body. Use the mouse wheel to zoom. WASD stays relative to the orbit camera heading, while `facing: 'movement'` characters remain visually independent from the camera and `facing: 'camera'` characters continue to support directional locomotion sets.
 
 Desktop orbit input is bound directly to Player's camera controller so Player-specific RMB-drag and wheel-zoom hooks remain reachable even though Anyo's `world.exploration` facade intentionally exposes only the stable base movement/look contract.
+
+### Camera smoothing and obstruction recovery (0.5.2)
+
+Third-person smoothing is enabled by default. Player keeps authoritative body movement immediate while the visual follow target and zoom arm use frame-rate-independent damping. Camera collision remains conservative: an obstruction shortens the arm immediately, while the camera eases back outward after the obstruction clears.
+
+```ts
+player.setThirdPersonCamera({
+  distance: 4,
+  targetHeight: 1.35,
+  collision: true,
+  smoothing: {
+    horizontalTargetResponse: 18,
+    verticalTargetResponse: 10,
+    zoomResponse: 16,
+    collisionRecoveryResponse: 8,
+  },
+  orbit: true,
+})
+```
+
+Most hosts should use the defaults. Set `smoothing: false` when reproducing the pre-0.5.2 immediate camera response for compatibility testing.
 
 
 ### Locomotion telemetry

@@ -1,7 +1,7 @@
 # Development memory
 
 ## Current baseline
-0.5.1, fixing the real desktop-input bridge for MMORPG third-person orbit on top of the dev.8 camera hardening.
+0.5.2 camera-hardening candidate on top of the published S24 0.5.1 baseline.
 
 ## Architecture and boundaries
 - PlayerBody owns eye/feet position, collision-resolved movement, vertical velocity, look angles, movement facing, run input and jump input. It uses Anyo CollisionWorld with bounded simulation steps and never reads the renderer camera during movement.
@@ -13,7 +13,7 @@
 - Character anchoring still writes only the entity transform; animation must not move the authoritative Player root/collider.
 
 ## API and behavior
-- Existing `setCharacterAnchor`, `setThirdPersonCamera` and `viewState` APIs remain unchanged.
+- Existing `setCharacterAnchor`, `setThirdPersonCamera` and `viewState` APIs remain compatible. `setThirdPersonCamera` now accepts optional `smoothing` controls; omitting them enables production defaults and `smoothing: false` restores the legacy immediate response.
 - New `player.locomotion` is nullable when no active runtime exists.
 - `runIntent` reports requested run input, while `horizontalSpeed` remains collision-authoritative. Walking/running into a wall therefore reports the resolved speed rather than the requested speed.
 - Teleport, reset-to-spawn and session restore remain body-coordinate operations.
@@ -23,6 +23,16 @@
 - Rebuilt runtime files passed `camera-recovery.test.mjs`, including the new long-frame locomotion telemetry regression.
 - Full dependency installation was unavailable in this workspace, so the unchanged React/Vue adapter outputs are retained from the prior verified dev.5 vendor build.
 - Keep this file excluded from npm.
+
+## 2026-09-24 — 0.5.2 third-person camera hardening
+- Preserve PlayerBody as the sole owner of collision-resolved locomotion and body coordinates. Camera smoothing is visual-only and never feeds renderer camera state back into movement.
+- Third-person camera state now separates requested wheel distance, smoothed zoom distance, collision arm fraction, and smoothed visual target.
+- Horizontal and vertical target responses are independent so stairs/grounding corrections can be softened without making planar follow feel loose.
+- Collision entry is immediate for safety; collision recovery is frame-rate-independent and intentionally slower to prevent outward popping after walls/corners clear.
+- Web Surface wheel/focus ownership and DesktopInputController orbit routing are unchanged.
+- `smoothing: false` is the compatibility escape hatch for the 0.5.1 immediate camera response.
+- New focused regressions: follow damping, zoom damping, obstruction entry, obstruction recovery, legacy compatibility, invalid response validation.
+- Targeted strict TypeScript validation against Anyo 0.10.0-rc.3 / Sekai64 0.8.0-rc.34 passes. Broad non-framework regression suite passes 216/216 in the isolated validation workspace.
 
 ## 2026-09-17 dev.7 MMORPG camera
 - `setThirdPersonCamera({ orbit: true })` enables right-mouse drag orbit and wheel zoom without changing the legacy behavior when `orbit` is omitted.
