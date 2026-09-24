@@ -1,3 +1,10 @@
+# 0.5.5
+
+- Keep the 3D canvas visually borderless when it receives `:focus-visible`, including fullscreen.
+- Replace the hard-coded 2px light canvas outline with opt-in CSS variables: `--anyo-player-canvas-focus-outline` and `--anyo-player-canvas-focus-outline-offset`.
+- Preserve focus rings on Player buttons and other interactive controls; only the immersive render canvas changes.
+- No camera, movement, collision, renderer, Web Surface, XR, or framework-adapter behavior changes.
+
 # 0.5.4
 
 - Added runtime left/right/center shoulder switching with frame-rate-independent shoulder damping and preserved legacy signed `shoulderOffset` behavior.

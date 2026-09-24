@@ -12,6 +12,8 @@
   --anyo-player-ui-control-radius: 9px;
   --anyo-player-ui-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --anyo-player-ui-backdrop-blur: 14px;
+  --anyo-player-canvas-focus-outline: none;
+  --anyo-player-canvas-focus-outline-offset: -2px;
   position: relative;
   overflow: hidden;
   contain: layout paint style;
@@ -177,8 +179,8 @@
 }
 
 .anyo-player__canvas:focus-visible {
-  outline: 2px solid var(--anyo-player-ui-accent);
-  outline-offset: -2px;
+  outline: var(--anyo-player-canvas-focus-outline);
+  outline-offset: var(--anyo-player-canvas-focus-outline-offset);
 }
 
 .anyo-player__panel--paused {

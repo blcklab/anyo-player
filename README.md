@@ -52,6 +52,19 @@ await player.disposeAsync()
 
 That final `disposeAsync()` matters in production. It releases browser listeners, input ownership, renderer resources, object URLs, and the active Anyo runtime owned by that Player instance.
 
+### Borderless canvas focus
+
+The 3D canvas stays visually borderless when it receives keyboard/programmatic focus, including fullscreen. Player buttons and other interactive controls still keep their normal focus indicators.
+
+Hosts that explicitly want a canvas focus ring can opt in with CSS variables:
+
+```css
+.anyo-player {
+  --anyo-player-canvas-focus-outline: 2px solid var(--anyo-player-ui-accent);
+  --anyo-player-canvas-focus-outline-offset: -2px;
+}
+```
+
 ## What can be loaded?
 
 Player accepts a URL, JSON text, a world document object, local browser files, virtual folder maps, and trusted host-decoded archives.
