@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { SourceResolver } from '../dist/internal/SourceResolver.js'
+import { createWorld, entitiesPlugin } from '@blcklab/anyo'
 
 const world = {
   version: '0.6',
@@ -63,6 +64,56 @@ test('fetches URL sources abortably and preserves relative Anyo resources', asyn
   assert.equal(result.document.entities[0].webSurface.source.image, 'https://example.com/app/worlds/images/screen.png')
 })
 
+
+
+test('JSON sources with baseUrl absolutize World 0.9 import sources for Anyo core', async () => {
+  const resolver = new SourceResolver({ baseUrl: 'https://loader.example/app/' })
+  const result = await resolver.resolve({
+    json: JSON.stringify({
+      version: '0.9',
+      imports: { hero: { src: './models/hero.anyo.json' } },
+      entities: [{ id: 'hero-instance', composition: 'hero' }],
+    }),
+    baseUrl: 'https://cdn.example/world/world.anyo.json',
+  }, new AbortController().signal)
+  assert.equal(result.documentUrl, 'https://cdn.example/world/world.anyo.json')
+  assert.equal(result.document.imports.hero.src, 'https://cdn.example/world/models/hero.anyo.json')
+})
+
+
+test('Loader-shaped JSON source can compile a relative World 0.9 native-object import through Anyo core', async () => {
+  const resolver = new SourceResolver({ baseUrl: 'https://loader.example/' })
+  const resolved = await resolver.resolve({
+    json: JSON.stringify({
+      version: '0.9',
+      imports: { hero: { src: './models/hero.anyo.json' } },
+      entities: [{ id: 'hero-instance', composition: 'hero' }],
+    }),
+    baseUrl: 'https://cdn.example/world/world.anyo.json',
+  }, new AbortController().signal)
+
+  const previousFetch = globalThis.fetch
+  const requests = []
+  globalThis.fetch = async url => {
+    requests.push(String(url))
+    if (String(url) !== 'https://cdn.example/world/models/hero.anyo.json') return new Response('Not found', { status: 404 })
+    return new Response(JSON.stringify({
+      kind: 'anyo-object',
+      version: '0.1',
+      geometries: { body: { kind: 'box', size: [1, 2, 1] } },
+      root: { children: [{ id: 'body', type: 'geometry', geometry: 'body' }] },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  const runtime = createWorld({ plugins: [entitiesPlugin()], autoResize: false })
+  try {
+    await runtime.load(resolved.document)
+    assert.deepEqual(requests, ['https://cdn.example/world/models/hero.anyo.json'])
+    assert.ok(runtime.compiled.entityById.has('hero-instance/body'))
+  } finally {
+    await runtime.dispose()
+    globalThis.fetch = previousFetch
+  }
+})
 
 test('invokes fetch with the global receiver required by browser Window.fetch', async () => {
   let receiver

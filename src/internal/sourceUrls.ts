@@ -46,6 +46,9 @@ export function resolveDocumentResourceUrlsWith(
   resolver: PlayerResourceUrlResolver,
 ): WorldDocument {
   const copy = structuredClone(document)
+  for (const definition of Object.values(copy.imports ?? {})) {
+    if (typeof definition.src === 'string') definition.src = resolver(definition.src)
+  }
   for (const asset of Object.values(copy.assets ?? {})) {
     if (typeof asset.src === 'string') asset.src = resolver(asset.src)
     for (const entry of asset.lod ?? []) if (entry.src) entry.src = resolver(entry.src)

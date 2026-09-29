@@ -1,3 +1,8 @@
+# 0.5.7
+
+- Preserve World 0.9 modular imports when loading JSON/URL sources with a base URL by resolving `imports[*].src` alongside existing resource URLs before handing the document to Anyo core.
+- Add a Loader-shaped JSON + `baseUrl` regression for modular native-object imports.
+
 # 0.5.6
 
 - Expand the Anyo peer contract to accept the World 0.9 `0.11.0-rc.x` line after Step 14 ecosystem validation.

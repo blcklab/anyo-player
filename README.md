@@ -67,6 +67,8 @@ Hosts that explicitly want a canvas focus ring can opt in with CSS variables:
 
 ## What can be loaded?
 
+World 0.9 modular documents are supported when the source has a URL context. For JSON/blob sources, provide `baseUrl`; Player resolves root `imports[*].src` against that document URL before Anyo core resolves native Object 0.1 imports. Direct in-memory documents with relative imports still require the caller to provide source context through a supported source form.
+
 Player accepts a URL, JSON text, a world document object, local browser files, virtual folder maps, and trusted host-decoded archives.
 
 ```ts
