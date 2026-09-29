@@ -112,7 +112,7 @@ const QUALITY_ORDER: readonly AnyoPlayerResolvedQualityPreset[] = ['low', 'mediu
 
 const QUALITY_SETTINGS: Record<AnyoPlayerResolvedQualityPreset, QualityRendererSettings> = {
   low: {
-    imageQuality: { renderScale: 0.65, msaaSamples: 1, maxAnisotropy: 2, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0 },
+    imageQuality: { renderScale: 0.65, msaaSamples: 1, maxAnisotropy: 2, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0, surfaceDetail: 'off' },
     shadows: { ...DEFAULT_SHADOW_OPTIONS, enabled: true, mapSize: 512, bias: 0.0009, normalBias: 0.018, softness: 0.65, cameraPadding: 2, cascades: 1, maxDistance: 45, splitLambda: 0.55, stabilize: true, casterDistance: 55 },
     postProcessing: {
       enabled: true,
@@ -123,7 +123,7 @@ const QUALITY_SETTINGS: Record<AnyoPlayerResolvedQualityPreset, QualityRendererS
     optimization: { ...DEFAULT_OPTIMIZATION, frustumCulling: true, cachedBounds: true, pipelineSorting: true, shadowCasterCulling: true, lodHysteresis: 0.08, hizOcclusion: true, hizResolution: 64, clusteredLighting: true, clusterDimensions: [8, 5, 12], maxLightsPerCluster: 12, staticBatching: true, staticBatchMinInstances: 4, textureMemoryBudgetMB: 128, textureEvictionFrames: 120 },
   },
   medium: {
-    imageQuality: { renderScale: 0.8, msaaSamples: 2, maxAnisotropy: 4, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0.04 },
+    imageQuality: { renderScale: 0.8, msaaSamples: 2, maxAnisotropy: 4, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0.04, surfaceDetail: 'balanced' },
     shadows: { ...DEFAULT_SHADOW_OPTIONS, enabled: true, mapSize: 1024, bias: 0.0008, normalBias: 0.016, softness: 0.8, cameraPadding: 2, cascades: 2, maxDistance: 80, splitLambda: 0.6, stabilize: true, casterDistance: 95 },
     postProcessing: {
       enabled: true,
@@ -134,7 +134,7 @@ const QUALITY_SETTINGS: Record<AnyoPlayerResolvedQualityPreset, QualityRendererS
     optimization: { ...DEFAULT_OPTIMIZATION, frustumCulling: true, cachedBounds: true, pipelineSorting: true, shadowCasterCulling: true, lodHysteresis: 0.08, hizOcclusion: true, hizResolution: 96, clusteredLighting: true, clusterDimensions: [12, 7, 16], maxLightsPerCluster: 16, staticBatching: true, staticBatchMinInstances: 3, textureMemoryBudgetMB: 256, textureEvictionFrames: 180 },
   },
   high: {
-    imageQuality: { renderScale: 1, msaaSamples: 4, maxAnisotropy: 8, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0.08 },
+    imageQuality: { renderScale: 1, msaaSamples: 4, maxAnisotropy: 8, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0.08, surfaceDetail: 'high' },
     shadows: { ...DEFAULT_SHADOW_OPTIONS, enabled: true, mapSize: 2048, bias: 0.0007, normalBias: 0.014, softness: 1, cameraPadding: 2, cascades: 3, maxDistance: 135, splitLambda: 0.67, stabilize: true, casterDistance: 155 },
     postProcessing: {
       enabled: true,
@@ -145,7 +145,7 @@ const QUALITY_SETTINGS: Record<AnyoPlayerResolvedQualityPreset, QualityRendererS
     optimization: { ...DEFAULT_OPTIMIZATION, frustumCulling: true, cachedBounds: true, pipelineSorting: true, shadowCasterCulling: true, lodHysteresis: 0.08, hizOcclusion: true, hizResolution: 128, clusteredLighting: true, clusterDimensions: [16, 9, 24], maxLightsPerCluster: 24, staticBatching: true, staticBatchMinInstances: 3, textureMemoryBudgetMB: 512, textureEvictionFrames: 300 },
   },
   ultra: {
-    imageQuality: { renderScale: 1.15, msaaSamples: 4, maxAnisotropy: 16, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0.12 },
+    imageQuality: { renderScale: 1.15, msaaSamples: 4, maxAnisotropy: 16, mipmaps: true, dithering: true, antialiasing: 'fxaa', sharpen: 0.12, surfaceDetail: 'high' },
     shadows: { ...DEFAULT_SHADOW_OPTIONS, enabled: true, mapSize: 4096, bias: 0.0006, normalBias: 0.012, softness: 1.2, cameraPadding: 2, cascades: 4, maxDistance: 210, splitLambda: 0.72, stabilize: true, casterDistance: 235 },
     postProcessing: {
       enabled: true,

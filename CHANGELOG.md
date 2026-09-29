@@ -1,3 +1,8 @@
+# 0.5.6
+
+- Expand the Anyo peer contract to accept the World 0.9 `0.11.0-rc.x` line after Step 14 ecosystem validation.
+- Refresh development compatibility pins to Anyo `0.11.0-rc.15`, Sekai64 `0.8.0-rc.43`, and Web Surface Texture `1.0.1-rc.20`; Player runtime behavior is unchanged.
+
 # 0.5.5
 
 - Keep the 3D canvas visually borderless when it receives `:focus-visible`, including fullscreen.

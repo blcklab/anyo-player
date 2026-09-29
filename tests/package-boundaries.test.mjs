@@ -4,11 +4,11 @@ import { readFile } from 'node:fs/promises'
 
 test('package metadata keeps Player framework-neutral and on the validated engine baseline', async () => {
   const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-  assert.equal(pkg.peerDependencies['@blcklab/anyo'], '>=0.10.0-rc.1 <1.0.0')
+  assert.equal(pkg.peerDependencies['@blcklab/anyo'], '>=0.10.0-rc.1 <0.11.0 || >=0.11.0-0 <1.0.0')
   assert.equal(pkg.peerDependencies['@blcklab/sekai64'], '>=0.7.0 <0.8.0 || >=0.8.0-0 <0.9.0')
-  assert.equal(pkg.version, '0.5.5')
-  assert.equal(pkg.devDependencies['@blcklab/anyo'], '0.10.0-rc.3')
-  assert.equal(pkg.devDependencies['@blcklab/sekai64'], '0.8.0-rc.34')
+  assert.equal(pkg.version, '0.5.6')
+  assert.equal(pkg.devDependencies['@blcklab/anyo'], '0.11.0-rc.15')
+  assert.equal(pkg.devDependencies['@blcklab/sekai64'], '0.8.0-rc.43')
   assert.equal(pkg.exports['./element'].import, './dist/element.js')
   assert.equal(pkg.exports['./vue'].import, './dist/vue.js')
   assert.equal(pkg.exports['./react'].import, './dist/react.js')

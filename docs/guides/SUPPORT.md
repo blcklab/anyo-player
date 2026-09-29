@@ -5,7 +5,7 @@
 ## Engine range
 
 ```text
-@blcklab/anyo      >=0.10.0-rc.1 <1.0.0
+@blcklab/anyo      >=0.10.0-rc.1 <0.11.0 || >=0.11.0-0 <1.0.0
 @blcklab/sekai64   >=0.7.0 <0.8.0 || >=0.8.0-0 <0.9.0
 ```
 

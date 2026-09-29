@@ -22,6 +22,10 @@ test('quality presets normalize and merge without discarding explicit renderer o
   assert.equal(merged.postProcessing.ssao.enabled, true)
   assert.equal(merged.postProcessing.bloom.strength, 0.2)
   assert.equal(merged.optimization.cachedBounds, true)
+  assert.equal(qualitySettings('low').imageQuality.surfaceDetail, 'off')
+  assert.equal(qualitySettings('medium').imageQuality.surfaceDetail, 'balanced')
+  assert.equal(qualitySettings('high').imageQuality.surfaceDetail, 'high')
+  assert.equal(qualitySettings('ultra').imageQuality.surfaceDetail, 'high')
 })
 
 test('performance controller applies quality settings, samples telemetry, and adjusts resolution', () => {
